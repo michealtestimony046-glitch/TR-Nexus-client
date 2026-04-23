@@ -84,7 +84,7 @@ Conditional Logic:
 
 If "Promoter Code" selected:
 
-Show input field (e.g. MK101)
+Show input field (TR123)
 Mandatory Instruction Text (above submit button):
 
 "Note: After submission, you will be redirected to our Discord Command Center. Action Required: You must manually 'Create a Ticket' inside the server to be attended to by our team."
