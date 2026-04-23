@@ -48,7 +48,17 @@ export default function IntakeModal({ service, onClose }) {
       }
     }
 
-    // Instant redirect — no UI delay
+    // Instant redirect — no UI delay. Break out of any iframe so Discord loads at the top.
+    try {
+      if (window.top && window.top !== window.self) {
+        window.top.location.href = DISCORD_URL;
+        return;
+      }
+    } catch {
+      // cross-origin iframe — fall through to opening in a new tab
+      window.open(DISCORD_URL, '_blank', 'noopener');
+      return;
+    }
     window.location.replace(DISCORD_URL);
   }
 
