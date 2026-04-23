@@ -38,3 +38,6 @@ externalPort = 3001
 
 [userenv.shared]
 VITE_DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1493454530321317891/U8yGmVKfXjLi2kx59mtvkOoA2ufBCa5a3WkMU0QZxDzIbVlBZuwk1CrrXX2e3kJZLpHY"
+
+[nix]
+channel = "stable-25_05"
