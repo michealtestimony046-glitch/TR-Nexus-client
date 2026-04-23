@@ -120,7 +120,7 @@ export default function Intake() {
           </div>
           <div className="field">
             <label>Project URL / Link</label>
-            <input type="text" required value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} placeholder="https://your-project.com" />
+            <input type="url" required value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} placeholder="https://your-project.com" />
           </div>
           <div className="field">
             <label>Referral Source</label>
@@ -132,7 +132,7 @@ export default function Intake() {
           {referral === "Promoter Code" && (
             <div className="field">
               <label>Promoter Code</label>
-              <input type="text" required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="TR123" />
+              <input type="text" required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. MK101" />
             </div>
           )}
 
