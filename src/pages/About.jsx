@@ -10,6 +10,7 @@ export default function About() {
   return (
     <>
       <section className="about page-pad-top">
+        <div className="about-watermark" aria-hidden="true" />
         <div className="container about-grid">
           <div className="about-body">
             <div className="section-tag">// 01 — About</div>

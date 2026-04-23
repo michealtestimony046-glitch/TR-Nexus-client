@@ -39,7 +39,9 @@ const TABS = [
 function Brand() {
   return (
     <Link to="/" className="brand">
-      <span className="brand-mark">T/R</span>
+      <span className="brand-mark">
+        <img src="/logo.jpg" alt="T/R Agency" />
+      </span>
       <span className="brand-text">
         T<span className="slash">/</span>R Agency
       </span>
