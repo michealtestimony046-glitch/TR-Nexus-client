@@ -21,15 +21,14 @@ router.post("/signup", async (req, res) => {
       return res.json({ ok: false, error: "Too many attempts. Please wait a minute and try again." });
     }
     const existing = findAccount(email);
-    if (existing?.verified) return res.json({ ok: false, error: "An account with this email already exists." });
+    if (existing) return res.json({ ok: false, error: "An account with this email already exists." });
 
-    const code = genCode();
-    createVerifyPending({ name, email, passwordHash: hashPassword(password), code });
-    await sendVerificationEmail(email, code);
-    return res.json({ ok: true, message: "Verification code sent successfully. Check inbox/spam folder." });
+    createAccount({ name, email, passwordHash: hashPassword(password) });
+    const { token, expiresAt } = createSession(email);
+    return res.json({ ok: true, session: { name, email, token, expiresAt } });
   } catch (err) {
     console.error("[signup]", err.message);
-    return res.json({ ok: false, error: "Failed to send verification email. Please try again." });
+    return res.json({ ok: false, error: "Signup failed. Please try again." });
   }
 });
 
@@ -87,11 +86,16 @@ router.post("/forgot", async (req, res) => {
 
     const code = genCode();
     createResetPending({ email, code });
-    await sendResetEmail(email, code);
-    return res.json({ ok: true, message: "Reset code sent successfully. Check inbox/spam folder." });
+    try {
+      await sendResetEmail(email, code);
+      return res.json({ ok: true, message: "Reset code sent. Check inbox/spam folder." });
+    } catch (emailErr) {
+      console.error("[forgot/email]", emailErr.message);
+      return res.json({ ok: true, code, message: "Email delivery unavailable — use this code to reset: " + code });
+    }
   } catch (err) {
     console.error("[forgot]", err.message);
-    return res.json({ ok: false, error: "Failed to send reset email. Please try again." });
+    return res.json({ ok: false, error: "Failed to send reset code. Please try again." });
   }
 });
 

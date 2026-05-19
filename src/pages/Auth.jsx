@@ -47,8 +47,8 @@ export default function AuthPage() {
         if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
         const res = await signup(name, email, password);
         if (!res.ok) { setError(res.error); setLoading(false); return; }
-        setInfo(res.message || "Verification code sent. Check inbox/spam folder.");
-        setMode("verify");
+        refresh();
+        navigate(next, { replace: true });
 
       } else if (mode === "verify") {
         const res = await verifyEmail(email, code);
