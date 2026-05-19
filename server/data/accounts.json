@@ -1,0 +1,19 @@
+[
+  {
+    "name": "Mk",
+    "email": "michealtestimony046@gmail.com",
+    "passwordHash": "1071799987faf963064abeb062b75ffe90e678dfe6e7f8cd7161b6834fbe11df",
+    "verified": true,
+    "createdAt": "2026-05-19T13:02:59.804Z",
+    "sessions": [
+      {
+        "token": "75066df8b74407f9cedeac7ab3c37425a145caea182933a05d32d3928a770242",
+        "expiresAt": 1779800579804
+      },
+      {
+        "token": "03519c321bc6a87e3a26b9ffa71b5e38148e03a4f23cb6921e0ad650298c733a",
+        "expiresAt": 1779800611660
+      }
+    ]
+  }
+]
