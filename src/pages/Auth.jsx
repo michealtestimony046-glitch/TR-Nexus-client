@@ -34,39 +34,43 @@ export default function AuthPage() {
     setError(""); setInfo("");
     setLoading(true);
 
-    if (mode === "login") {
-      const res = await login(email, password);
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      refresh();
-      navigate(next, { replace: true });
+    try {
+      if (mode === "login") {
+        const res = await login(email, password);
+        if (!res.ok) { setError(res.error); setLoading(false); return; }
+        refresh();
+        navigate(next, { replace: true });
 
-    } else if (mode === "signup") {
-      if (!tosChecked) { setError("You must agree to the Terms of Service and Privacy Policy."); setLoading(false); return; }
-      if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
-      if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-      const res = await signup(name, email, password);
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setInfo(res.message || "Verification code sent. Check inbox/spam folder.");
-      setMode("verify");
+      } else if (mode === "signup") {
+        if (!tosChecked) { setError("You must agree to the Terms of Service and Privacy Policy."); setLoading(false); return; }
+        if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
+        if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
+        const res = await signup(name, email, password);
+        if (!res.ok) { setError(res.error); setLoading(false); return; }
+        setInfo(res.message || "Verification code sent. Check inbox/spam folder.");
+        setMode("verify");
 
-    } else if (mode === "verify") {
-      const res = await verifyEmail(email, code);
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      refresh();
-      navigate(next, { replace: true });
+      } else if (mode === "verify") {
+        const res = await verifyEmail(email, code);
+        if (!res.ok) { setError(res.error); setLoading(false); return; }
+        refresh();
+        navigate(next, { replace: true });
 
-    } else if (mode === "forgot") {
-      const res = await forgotPassword(email);
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setInfo(res.message || "Reset code sent. Check inbox/spam folder.");
-      setMode("reset");
+      } else if (mode === "forgot") {
+        const res = await forgotPassword(email);
+        if (!res.ok) { setError(res.error); setLoading(false); return; }
+        setInfo(res.message || "Reset code sent. Check inbox/spam folder.");
+        setMode("reset");
 
-    } else if (mode === "reset") {
-      if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
-      if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-      const res = await resetPassword(email, code, password);
-      if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setDone(true);
+      } else if (mode === "reset") {
+        if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
+        if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
+        const res = await resetPassword(email, code, password);
+        if (!res.ok) { setError(res.error); setLoading(false); return; }
+        setDone(true);
+      }
+    } catch (err) {
+      setError("Connection error — please try again in a moment.");
     }
 
     setLoading(false);
