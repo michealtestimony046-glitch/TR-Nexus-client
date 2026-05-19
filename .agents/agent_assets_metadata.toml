@@ -6,3 +6,9 @@ id = "_VMH8i1Kju0lZovB3lRKd"
 uri = "file://tr-agency-source.tar.gz"
 type = "unspecified"
 title = "T/R Agency — Full Source Code"
+
+[[outputs]]
+id = "1bmhczTumiD7ZQO1dhedQ"
+uri = "file://tr-agency-source.zip"
+type = "unspecified"
+title = "T/R Agency — Full Source Code (.zip)"
