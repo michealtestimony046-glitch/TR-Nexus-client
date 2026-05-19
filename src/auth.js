@@ -44,6 +44,6 @@ export async function forgotPassword(email) {
   return post("/api/auth/forgot", { email });
 }
 
-export async function resetPassword(email, code, newPassword) {
-  return post("/api/auth/reset", { email, code, newPassword });
+export async function resetPassword(email, newPassword) {
+  return post("/api/auth/reset", { email, newPassword });
 }

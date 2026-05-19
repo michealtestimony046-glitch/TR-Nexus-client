@@ -59,13 +59,12 @@ export default function AuthPage() {
       } else if (mode === "forgot") {
         const res = await forgotPassword(email);
         if (!res.ok) { setError(res.error); setLoading(false); return; }
-        setInfo(res.message || "Reset code sent. Check inbox/spam folder.");
         setMode("reset");
 
       } else if (mode === "reset") {
         if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
         if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-        const res = await resetPassword(email, code, password);
+        const res = await resetPassword(email, password);
         if (!res.ok) { setError(res.error); setLoading(false); return; }
         setDone(true);
       }
@@ -80,8 +79,8 @@ export default function AuthPage() {
     login:  { tag: "// Returning User",   h: "Sign In",          sub: "Access your operational account." },
     signup: { tag: "// New Access",        h: "Create Account",   sub: "Set up your operational access to begin." },
     verify: { tag: "// Verification",      h: "Verify Your Email",sub: "Enter the 6-digit code sent to your email." },
-    forgot: { tag: "// Account Recovery",  h: "Forgot Password?", sub: "Enter your email to receive a reset code." },
-    reset:  { tag: "// Account Recovery",  h: "Reset Password",   sub: "Enter the reset code and choose a new password." },
+    forgot: { tag: "// Account Recovery",  h: "Forgot Password?", sub: "Enter your registered email to reset your password." },
+    reset:  { tag: "// Account Recovery",  h: "Reset Password",   sub: "Choose a new password for your account." },
   };
   const t = titles[mode];
 
@@ -151,20 +150,6 @@ export default function AuthPage() {
                 </div>
               )}
 
-              {mode === "reset" && (
-                <div className="field">
-                  <label>Reset Code</label>
-                  <input
-                    type="text" required
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="000000"
-                    inputMode="numeric" maxLength={6}
-                    style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.25em", fontSize: 22, textAlign: "center" }}
-                    autoComplete="one-time-code"
-                  />
-                </div>
-              )}
 
               {(mode === "login" || mode === "signup" || mode === "reset") && (
                 <div className="field">

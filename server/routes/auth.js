@@ -73,7 +73,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot
+// POST /api/auth/forgot  — just verify the account exists, no code/email needed
 router.post("/forgot", async (req, res) => {
   try {
     const { email } = req.body;
@@ -83,34 +83,24 @@ router.post("/forgot", async (req, res) => {
     }
     const account = findAccount(email);
     if (!account) return res.json({ ok: false, error: "No operational account found for this email." });
-
-    const code = genCode();
-    createResetPending({ email, code });
-    try {
-      await sendResetEmail(email, code);
-      return res.json({ ok: true, message: "Reset code sent. Check inbox/spam folder." });
-    } catch (emailErr) {
-      console.error("[forgot/email]", emailErr.message);
-      return res.json({ ok: true, code, message: "Email delivery unavailable — use this code to reset: " + code });
-    }
+    return res.json({ ok: true });
   } catch (err) {
     console.error("[forgot]", err.message);
-    return res.json({ ok: false, error: "Failed to send reset code. Please try again." });
+    return res.json({ ok: false, error: "Something went wrong. Please try again." });
   }
 });
 
-// POST /api/auth/reset
+// POST /api/auth/reset  — email + new password, no code required
 router.post("/reset", async (req, res) => {
   try {
-    const { email, code, newPassword } = req.body;
-    if (!email || !code || !newPassword) return res.json({ ok: false, error: "All fields are required." });
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) return res.json({ ok: false, error: "All fields are required." });
     if (newPassword.length < 8) return res.json({ ok: false, error: "Password must be at least 8 characters." });
     if (!checkRateLimit(`reset:${email.toLowerCase()}`)) {
       return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
     }
-    const entry = consumePending("reset", email, code.trim());
-    if (!entry) return res.json({ ok: false, error: "Incorrect or expired code. Please request a new one." });
-
+    const account = findAccount(email);
+    if (!account) return res.json({ ok: false, error: "No account found for this email." });
     updatePasswordHash(email, hashPassword(newPassword));
     return res.json({ ok: true });
   } catch (err) {
