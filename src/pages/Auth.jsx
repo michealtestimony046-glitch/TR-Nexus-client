@@ -1,23 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { signup, verifyEmail, login, forgotPassword, resetPassword } from "../auth.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import LegalModal from "../components/LegalModal.jsx";
-
-function CodeBox({ code }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    navigator.clipboard.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-  }
-  return (
-    <div className="code-box">
-      <span className="code-box-value">{code}</span>
-      <button className="code-box-copy" onClick={copy} type="button">
-        {copied ? "Copied" : "Copy"}
-      </button>
-    </div>
-  );
-}
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -33,53 +19,52 @@ export default function AuthPage() {
   const [code, setCode] = useState("");
   const [tosChecked, setTosChecked] = useState(false);
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
-  const [pendingCode, setPendingCode] = useState(null);
   const [done, setDone] = useState(false);
 
   const [legalOpen, setLegalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState("tos");
 
   function openLegal(tab) { setLegalTab(tab); setLegalOpen(true); }
-
-  function switchMode(m) { setMode(m); setError(""); setPendingCode(null); setDone(false); setCode(""); }
+  function switchMode(m) { setMode(m); setError(""); setInfo(""); setDone(false); setCode(""); }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError("");
+    setError(""); setInfo("");
     setLoading(true);
 
     if (mode === "login") {
-      const res = login(email, password);
+      const res = await login(email, password);
       if (!res.ok) { setError(res.error); setLoading(false); return; }
       refresh();
       navigate(next, { replace: true });
 
     } else if (mode === "signup") {
-      if (!tosChecked) { setError("You must agree to the Terms of Service and Privacy Policy to continue."); setLoading(false); return; }
+      if (!tosChecked) { setError("You must agree to the Terms of Service and Privacy Policy."); setLoading(false); return; }
       if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-      const res = signup(name, email, password);
+      const res = await signup(name, email, password);
       if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setPendingCode(res.code);
+      setInfo(res.message || "Verification code sent. Check inbox/spam folder.");
       setMode("verify");
 
     } else if (mode === "verify") {
-      const res = verifyEmail(email, code);
+      const res = await verifyEmail(email, code);
       if (!res.ok) { setError(res.error); setLoading(false); return; }
       refresh();
       navigate(next, { replace: true });
 
     } else if (mode === "forgot") {
-      const res = forgotPassword(email);
+      const res = await forgotPassword(email);
       if (!res.ok) { setError(res.error); setLoading(false); return; }
-      setPendingCode(res.code);
+      setInfo(res.message || "Reset code sent. Check inbox/spam folder.");
       setMode("reset");
 
     } else if (mode === "reset") {
       if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
       if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-      const res = resetPassword(email, code, password);
+      const res = await resetPassword(email, code, password);
       if (!res.ok) { setError(res.error); setLoading(false); return; }
       setDone(true);
     }
@@ -88,11 +73,11 @@ export default function AuthPage() {
   }
 
   const titles = {
-    login: { tag: "// Returning User", h: "Sign In", sub: "Access your operational account." },
-    signup: { tag: "// New Access", h: "Create Account", sub: "Set up your operational access to begin." },
-    verify: { tag: "// Verification", h: "Verify Your Email", sub: "Enter the 6-digit code generated for your account." },
-    forgot: { tag: "// Account Recovery", h: "Forgot Password?", sub: "Enter your email and we'll generate a reset code." },
-    reset: { tag: "// Account Recovery", h: "Reset Password", sub: "Enter the reset code and choose a new password." },
+    login:  { tag: "// Returning User",   h: "Sign In",          sub: "Access your operational account." },
+    signup: { tag: "// New Access",        h: "Create Account",   sub: "Set up your operational access to begin." },
+    verify: { tag: "// Verification",      h: "Verify Your Email",sub: "Enter the 6-digit code sent to your email." },
+    forgot: { tag: "// Account Recovery",  h: "Forgot Password?", sub: "Enter your email to receive a reset code." },
+    reset:  { tag: "// Account Recovery",  h: "Reset Password",   sub: "Enter the reset code and choose a new password." },
   };
   const t = titles[mode];
 
@@ -105,18 +90,9 @@ export default function AuthPage() {
           <p className="lead-sm">{t.sub}</p>
 
           <ul className="step-list">
-            <li>
-              <span className="step-n">1</span>
-              <div><strong>Create Account</strong><em>Set up your operational access.</em></div>
-            </li>
-            <li>
-              <span className="step-n">2</span>
-              <div><strong>Verify Email</strong><em>Confirm your identity with a one-time code.</em></div>
-            </li>
-            <li>
-              <span className="step-n">3</span>
-              <div><strong>Submit Intake</strong><em>Access the project intake workflow.</em></div>
-            </li>
+            <li><span className="step-n">1</span><div><strong>Create Account</strong><em>Set up your operational access.</em></div></li>
+            <li><span className="step-n">2</span><div><strong>Verify Email</strong><em>Confirm your identity with a one-time code.</em></div></li>
+            <li><span className="step-n">3</span><div><strong>Submit Intake</strong><em>Access the project intake workflow.</em></div></li>
           </ul>
         </div>
 
@@ -137,85 +113,66 @@ export default function AuthPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
+
+              {info && (
+                <div className="auth-info">{info}</div>
+              )}
+
               {mode === "signup" && (
                 <div className="field">
                   <label>Full Name</label>
-                  <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
+                  <input type="text" required autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
                 </div>
               )}
 
               {(mode === "login" || mode === "signup" || mode === "forgot" || mode === "reset") && (
                 <div className="field">
                   <label>Email</label>
-                  <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" />
+                  <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" />
                 </div>
               )}
 
               {mode === "verify" && (
-                <>
-                  {pendingCode && (
-                    <div className="notice" style={{ marginBottom: 20, marginTop: 0 }}>
-                      <strong>Your Verification Code</strong>
-                      <p style={{ margin: "6px 0 10px", fontSize: 13 }}>
-                        Copy the code below and enter it in the field. In a live deployment, this would be sent to your email.
-                      </p>
-                      <CodeBox code={pendingCode} />
-                    </div>
-                  )}
-                  <div className="field">
-                    <label>Verification Code</label>
-                    <input
-                      type="text"
-                      required
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="6-digit code"
-                      inputMode="numeric"
-                      maxLength={6}
-                      style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.2em", fontSize: 20, textAlign: "center" }}
-                    />
-                  </div>
-                </>
+                <div className="field">
+                  <label>Verification Code</label>
+                  <input
+                    type="text" required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    inputMode="numeric" maxLength={6}
+                    style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.25em", fontSize: 22, textAlign: "center" }}
+                    autoComplete="one-time-code"
+                  />
+                </div>
               )}
 
               {mode === "reset" && (
-                <>
-                  {pendingCode && (
-                    <div className="notice" style={{ marginBottom: 20, marginTop: 0 }}>
-                      <strong>Your Reset Code</strong>
-                      <p style={{ margin: "6px 0 10px", fontSize: 13 }}>
-                        Use the code below to reset your password. In a live deployment, this would be sent to your email.
-                      </p>
-                      <CodeBox code={pendingCode} />
-                    </div>
-                  )}
-                  <div className="field">
-                    <label>Reset Code</label>
-                    <input
-                      type="text"
-                      required
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                      placeholder="6-digit code"
-                      inputMode="numeric"
-                      maxLength={6}
-                      style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.2em", fontSize: 20, textAlign: "center" }}
-                    />
-                  </div>
-                </>
+                <div className="field">
+                  <label>Reset Code</label>
+                  <input
+                    type="text" required
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    placeholder="000000"
+                    inputMode="numeric" maxLength={6}
+                    style={{ fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.25em", fontSize: 22, textAlign: "center" }}
+                    autoComplete="one-time-code"
+                  />
+                </div>
               )}
 
               {(mode === "login" || mode === "signup" || mode === "reset") && (
                 <div className="field">
                   <label>{mode === "reset" ? "New Password" : "Password"}</label>
-                  <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+                  <input type="password" required autoComplete={mode === "login" ? "current-password" : "new-password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
                 </div>
               )}
 
               {(mode === "signup" || mode === "reset") && (
                 <div className="field">
                   <label>Confirm Password</label>
-                  <input type="password" required value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="••••••••" />
+                  <input type="password" required autoComplete="new-password" value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} placeholder="••••••••" />
                 </div>
               )}
 
@@ -228,11 +185,7 @@ export default function AuthPage() {
               {mode === "signup" && (
                 <div className="field tos-field">
                   <label className="tos-check-label">
-                    <input
-                      type="checkbox"
-                      checked={tosChecked}
-                      onChange={(e) => setTosChecked(e.target.checked)}
-                    />
+                    <input type="checkbox" checked={tosChecked} onChange={(e) => setTosChecked(e.target.checked)} />
                     <span>
                       I agree to the{" "}
                       <button type="button" className="legal-link" onClick={() => openLegal("tos")}>Terms of Service</button>
@@ -246,37 +199,22 @@ export default function AuthPage() {
               {error && <div className="auth-error">{error}</div>}
 
               <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} disabled={loading}>
-                {loading ? "Processing…" : {
-                  login: "Sign In",
-                  signup: "Create Account",
-                  verify: "Verify & Activate",
-                  forgot: "Send Reset Code",
-                  reset: "Reset Password",
-                }[mode]}
+                {loading ? "Processing…" : { login: "Sign In", signup: "Create Account", verify: "Verify & Activate", forgot: "Send Reset Code", reset: "Reset Password" }[mode]}
               </button>
             </form>
           )}
 
           <div className="auth-switch">
-            {mode === "login" ? (
-              <span>No account? <button className="auth-text-btn" onClick={() => switchMode("signup")}>Create one →</button></span>
-            ) : mode === "signup" ? (
-              <span>Already have access? <button className="auth-text-btn" onClick={() => switchMode("login")}>Sign in →</button></span>
-            ) : mode === "verify" ? (
-              <span>Wrong email? <button className="auth-text-btn" onClick={() => switchMode("signup")}>← Back to signup</button></span>
-            ) : mode === "forgot" || mode === "reset" ? (
-              <span><button className="auth-text-btn" onClick={() => switchMode("login")}>← Back to sign in</button></span>
-            ) : null}
+            {mode === "login"  && <span>No account? <button className="auth-text-btn" onClick={() => switchMode("signup")}>Create one →</button></span>}
+            {mode === "signup" && <span>Already have access? <button className="auth-text-btn" onClick={() => switchMode("login")}>Sign in →</button></span>}
+            {mode === "verify" && <span><button className="auth-text-btn" onClick={() => switchMode("signup")}>← Back to signup</button></span>}
+            {(mode === "forgot" || mode === "reset") && <span><button className="auth-text-btn" onClick={() => switchMode("login")}>← Back to sign in</button></span>}
           </div>
         </div>
       </div>
 
       {legalOpen && (
-        <LegalModal
-          tab={legalTab}
-          onClose={() => setLegalOpen(false)}
-          onSwitchTab={setLegalTab}
-        />
+        <LegalModal tab={legalTab} onClose={() => setLegalOpen(false)} onSwitchTab={setLegalTab} />
       )}
     </section>
   );

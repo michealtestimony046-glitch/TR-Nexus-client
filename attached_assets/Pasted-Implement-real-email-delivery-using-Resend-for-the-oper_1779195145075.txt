@@ -1,0 +1,109 @@
+Implement real email delivery using Resend for the operational access system.
+
+━━━━━━━━━━━
+
+RESEND CONFIGURATION
+
+Use the official Resend SDK.
+
+Environment variable:
+RESEND_API_KEY
+
+re_MWoCYyMm_Lrr1zFREovXUazR6qAJ8jdFJ
+
+Temporary sender email:
+onboarding@resend.dev
+
+Reply-To email:
+tragency.ops@proton.me
+
+All email sending must happen server-side only.
+Never expose API keys in frontend code.
+
+━━━━━━━━━━━
+
+SIGNUP VERIFICATION FLOW
+
+When a user creates an account:
+
+* generate a secure 6-digit verification code
+* send the code to the user’s email using Resend
+* do not activate account until verification succeeds
+
+Verification code rules:
+
+* single-use
+* expires in 10 minutes
+
+Verification email:
+Subject:
+Verify Your Operational Access
+
+Body:
+T/R Agency Operational Access
+
+Your verification code:
+
+{{CODE}}
+
+Enter this code to activate your operational access account.
+
+If you did not request this access, you may ignore this email.
+
+Check spam/promotions folder if email is delayed.
+
+T/R Agency Operations
+
+After successful send:
+display:
+“Verification code sent successfully. Check inbox/spam folder.”
+
+━━━━━━━━━━━
+
+PASSWORD RESET FLOW
+
+Forgot password flow:
+
+* user enters email
+* system checks whether account exists
+* if valid:
+    generate secure 6-digit reset code
+* send reset code through Resend
+* allow password reset only after valid code entry
+
+Reset code rules:
+
+* single-use
+* expires in 15 minutes
+
+If email is not associated with an account:
+display:
+“No operational account found for this email.”
+
+Reset email subject:
+Reset Your Operational Access Password
+
+Reset email body:
+T/R Agency Operational Access
+
+Your password reset code:
+
+{{CODE}}
+
+Enter this code to reset your password.
+
+If you did not request this reset, ignore this email.
+
+Check spam/promotions folder if email is delayed.
+
+T/R Agency Operations
+
+━━━━━━━━━━━
+
+SECURITY + UX
+
+* add lightweight rate limiting
+* maintain current command-center aesthetic
+* do not redesign UI
+* all email routes/functions should be backend only
+* sessions remain active for 7 days after login

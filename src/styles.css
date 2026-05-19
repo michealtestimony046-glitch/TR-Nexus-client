@@ -530,6 +530,13 @@ section { padding: 90px 0; position: relative; }
   font-size: 13px; color: var(--danger); line-height: 1.5;
   margin-bottom: 14px;
 }
+.auth-info {
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid var(--line-strong);
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 13px; color: var(--neon); line-height: 1.5;
+  margin-bottom: 16px;
+}
 .auth-switch {
   margin-top: 20px; text-align: center;
   font-size: 13px; color: var(--text-dim);

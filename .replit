@@ -27,6 +27,10 @@ waitForPort = 5000
 outputType = "webview"
 
 [[ports]]
+localPort = 3001
+externalPort = 3003
+
+[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -46,6 +50,7 @@ externalPort = 3002
 
 [userenv.shared]
 VITE_DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1493454530321317891/U8yGmVKfXjLi2kx59mtvkOoA2ufBCa5a3WkMU0QZxDzIbVlBZuwk1CrrXX2e3kJZLpHY"
+RESEND_API_KEY = "re_MWoCYyMm_Lrr1zFREovXUazR6qAJ8jdFJ"
 
 [nix]
 channel = "stable-25_05"
