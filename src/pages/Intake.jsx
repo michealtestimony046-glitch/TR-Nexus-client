@@ -31,19 +31,24 @@ async function fireWebhook(payload) {
   const body = JSON.stringify({
     username: "T/R Intake — Safety Net",
     content: "**New Lead Submission** — admin-leads",
-    embeds: [{
-      title: `New Intake — ${payload.service}`,
-      color: 0x38bdf8,
-      fields: [
-        { name: "Name", value: payload.name || "—", inline: true },
-        { name: "App URL", value: payload.projectUrl || "—", inline: true },
-        { name: "Referral Source", value: payload.referralSource, inline: true },
-        ...(payload.promoterCode ? [{ name: "Promoter Code", value: payload.promoterCode, inline: true }] : []),
-        { name: "Service", value: payload.service, inline: false },
-      ],
-      footer: { text: "T/R Agency · Safety Net Webhook" },
-      timestamp: payload.submittedAt,
-    }],
+    embeds: [
+      {
+        title: `New Intake — ${payload.service}`,
+        color: 0x38bdf8,
+        fields: [
+          { name: "Name", value: payload.name || "—", inline: true },
+          { name: "Project URL", value: payload.projectUrl || "—", inline: true },
+          { name: "Project Type", value: payload.projectType || "—", inline: true },
+          { name: "Current Stage", value: payload.stage || "—", inline: true },
+          { name: "Referral Source", value: payload.referralSource, inline: true },
+          ...(payload.promoterCode ? [{ name: "Promoter Code", value: payload.promoterCode, inline: true }] : []),
+          { name: "Service", value: payload.service, inline: false },
+          { name: "Main Issue / Goal", value: payload.mainIssue || "—", inline: false },
+        ],
+        footer: { text: "T/R Agency · Safety Net Webhook" },
+        timestamp: payload.submittedAt,
+      },
+    ],
   });
   for (let i = 0; i < 2; i++) {
     try {
@@ -65,6 +70,9 @@ export default function Intake() {
 
   const [name, setName] = useState("");
   const [projectUrl, setProjectUrl] = useState("");
+  const [projectType, setProjectType] = useState("");
+  const [stage, setStage] = useState("Idea");
+  const [mainIssue, setMainIssue] = useState("");
   const [referral, setReferral] = useState("Official Website");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -78,6 +86,9 @@ export default function Intake() {
       service: presetService || "General Consult",
       name,
       projectUrl,
+      projectType,
+      stage,
+      mainIssue,
       referralSource: referral,
       promoterCode: referral === "Promoter Code" ? code : null,
       submittedAt: new Date().toISOString(),
@@ -96,58 +107,157 @@ export default function Intake() {
           <div className="section-tag">// Smart Intake</div>
           <h2>Tell us about your project.</h2>
           <p className="lead-sm">
-            Submissions route to our Discord <strong>Command Center</strong>. A real-time
-            ping also fires to our private <strong>#admin-leads</strong> channel — your
-            details never get lost.
+            Submissions route to our Discord <strong>Command Center</strong>. A
+            real-time ping also fires to our private{" "}
+            <strong>#admin-leads</strong> channel — your details never get lost.
           </p>
           <ul className="step-list">
-            <li><span className="step-n">1</span><div><strong>Submit</strong><em>Form posts to the operations channel.</em></div></li>
-            <li><span className="step-n">2</span><div><strong>Redirect</strong><em>You land in the Discord Command Center.</em></div></li>
-            <li><span className="step-n">3</span><div><strong>Create a Ticket</strong><em>Open a ticket inside the server to be attended to.</em></div></li>
+            <li>
+              <span className="step-n">1</span>
+              <div>
+                <strong>Submit</strong>
+                <em>Form posts to the operations channel.</em>
+              </div>
+            </li>
+            <li>
+              <span className="step-n">2</span>
+              <div>
+                <strong>Redirect</strong>
+                <em>You land in the Discord Command Center.</em>
+              </div>
+            </li>
+            <li>
+              <span className="step-n">3</span>
+              <div>
+                <strong>Create a Ticket</strong>
+                <em>Open a ticket inside the server to be attended to.</em>
+              </div>
+            </li>
           </ul>
-          <Link to="/services" className="back-link">← Back to services</Link>
+          <Link to="/services" className="back-link">
+            ← Back to services
+          </Link>
         </div>
 
         <form className="intake-form" onSubmit={handleSubmit}>
           <div className="form-head">
             <h3>Smart Intake</h3>
-            <div className="modal-svc">{presetService ? `// ${presetService}` : "// General Consult"}</div>
+            <div className="modal-svc">
+              {presetService ? `// ${presetService}` : "// General Consult"}
+            </div>
           </div>
 
           <div className="field">
             <label>Name</label>
-            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" />
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your full name"
+            />
           </div>
+
           <div className="field">
             <label>Project URL / Link</label>
-            <input type="url" required value={projectUrl} onChange={(e) => setProjectUrl(e.target.value)} placeholder="https://your-project.com" />
+            <input
+              type="text"
+              value={projectUrl}
+              onChange={(e) => setProjectUrl(e.target.value)}
+              placeholder="https://your-project.com or Play Store link"
+            />
           </div>
+
+          <div className="field">
+            <label>Project Type</label>
+            <input
+              type="text"
+              required
+              value={projectType}
+              onChange={(e) => setProjectType(e.target.value)}
+              placeholder="e.g. Mobile App, Web App, E-commerce..."
+            />
+          </div>
+
+          <div className="field">
+            <label>Current Stage</label>
+            <select value={stage} onChange={(e) => setStage(e.target.value)}>
+              <option>Idea</option>
+              <option>MVP</option>
+              <option>Closed Testing</option>
+              <option>Live Product</option>
+              <option>Scaling</option>
+            </select>
+          </div>
+
+          <div className="field">
+            <label>Main Issue / Goal</label>
+            <textarea
+              required
+              rows={4}
+              value={mainIssue}
+              onChange={(e) => setMainIssue(e.target.value)}
+              placeholder="Describe your main challenge or what you want to achieve..."
+            />
+          </div>
+
           <div className="field">
             <label>Referral Source</label>
-            <select value={referral} onChange={(e) => setReferral(e.target.value)}>
+            <select
+              value={referral}
+              onChange={(e) => setReferral(e.target.value)}
+            >
               <option>Official Website</option>
               <option>Promoter Code</option>
             </select>
           </div>
+
           {referral === "Promoter Code" && (
             <div className="field">
               <label>Promoter Code</label>
-              <input type="text" required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="e.g. MK101" />
+              <input
+                type="text"
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="e.g. MK101"
+              />
             </div>
           )}
 
           <div className="notice">
             <strong>Action Required</strong>
-            After submission, you will be redirected to our Discord Command Center. You must manually{" "}
-            <strong style={{ display: "inline", textTransform: "none", letterSpacing: 0, color: "#fff" }}>
+            After submission, you will be redirected to our Discord Command
+            Center. You must manually{" "}
+            <strong
+              style={{
+                display: "inline",
+                textTransform: "none",
+                letterSpacing: 0,
+                color: "#fff",
+              }}
+            >
               "Create a Ticket"
             </strong>{" "}
             inside the server to be attended to by our team.
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={submitting}
+          >
             {submitting ? "Submitting…" : "Submit & Enter Command Center"}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path d="M5 12h14M13 5l7 7-7 7" />
+            </svg>
           </button>
         </form>
       </div>

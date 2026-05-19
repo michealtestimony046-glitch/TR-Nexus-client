@@ -1,0 +1,171 @@
+Update ONLY the Services section of the website.
+
+Do NOT redesign the homepage, navbar, footer, colors, or overall brand styling.
+Keep the current visual identity, theme, and existing color system exactly as it already is.
+
+The goal is to transform the current static service catalog into a more interactive and layered workflow experience.
+
+━━━━━━━━━━━
+
+CURRENT PROBLEM
+
+Right now the services are displayed as static cards with all information directly visible.
+
+The new structure should:
+
+* feel cleaner
+* reduce visual overload
+* improve conversions
+* feel more operational/system-like
+* keep the page easier to scan
+
+━━━━━━━━━━━
+
+NEW SERVICES SECTION STRUCTURE
+
+Instead of displaying long descriptions directly:
+
+Each service should have:
+
+* Service title
+* Short hook
+* Pricing
+* “Initialize” button
+
+When the user clicks “Initialize”:
+Open an expandable modal/panel/drawer containing the FULL service breakdown.
+
+IMPORTANT:
+The expanded descriptions must use the EXACT wording/copy provided.
+Do NOT rewrite, shorten, summarize, or simplify the service descriptions.
+
+Each service should have its own independent expanded panel.
+
+━━━━━━━━━━━
+
+NEW FLOW
+
+Service Card
+→ Initialize
+→ Expanded Service Breakdown
+→ Proceed Button
+→ Smart Intake Form
+→ Discord Command Center Instructions
+
+━━━━━━━━━━━
+
+SERVICES TO INCLUDE
+
+CATEGORY 1 — ENTRY / TESTING
+
+* 48-Hour App Health Scan
+* Google Play Testing Compliance Service
+* Growth Leak Report
+
+CATEGORY 2 — CORE FIXING OFFERS
+
+* App Rescue Sprint
+* MVP Build Sprint
+* Performance Upgrade System
+
+CATEGORY 3 — RETAINER / STABILITY
+
+* App Stability Shield
+* Growth Support Layer
+
+━━━━━━━━━━━
+
+EXPANDED VIEW REQUIREMENTS
+
+When a user clicks Initialize:
+
+* smoothly open a detailed service panel
+* keep the existing website aesthetic/style
+* display the COMPLETE matching service description
+* include all bullets, explanations, outcomes, and positioning copy exactly as written
+
+At the bottom of every expanded service panel:
+Add a “Proceed” button.
+
+━━━━━━━━━━━
+
+SMART INTAKE FLOW
+
+When Proceed is clicked:
+Open a Smart Intake section.
+
+Use this exact structure:
+
+SMART INTAKE
+
+Tell us about your project.
+
+Submissions route to our Discord Command Center.
+A real-time ping also fires to our private #admin-leads channel — your details never get lost.
+
+1 Submit
+Form posts to the operations channel
+
+2 Redirect
+You land in the Discord Command Center
+
+3 Create a Ticket
+Open a ticket inside the server to be attended to
+
+Include:
+← Back to services
+
+━━━━━━━━━━━
+
+SMART INTAKE FORM FIELDS
+
+NAME
+
+PROJECT URL / LINK
+
+PROJECT TYPE
+
+CURRENT STAGE
+• Idea
+• MVP
+• Closed Testing
+• Live Product
+• Scaling
+
+MAIN ISSUE / GOAL
+
+REFERRAL SOURCE
+• Official Website
+• Promoter Code
+
+ACTION REQUIRED
+
+Text:
+“After submission, you will be redirected to our Discord Command Center. You must manually create a ticket inside the server to be attended to by our team.”
+
+BUTTON:
+Submit & Enter Command Center
+
+━━━━━━━━━━━
+
+IMPORTANT UX REQUIREMENTS
+
+The Services section should now feel:
+
+* interactive
+* modular
+* layered
+* workflow-driven
+* operational
+* cleaner to scan
+
+Instead of:
+
+* giant walls of text
+* static service listings
+
+The experience should feel like:
+“initializing a technical operations workflow”
+
+Keep all existing styling/colors from the current website.
+Only update the Services section structure, interactions, and content flow.
