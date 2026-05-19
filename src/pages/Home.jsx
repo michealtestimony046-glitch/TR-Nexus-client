@@ -18,7 +18,7 @@ export default function Home() {
           <div className="hero-actions">
             <Link className="btn btn-primary" to="/services">
               Explore Our Solutions
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </Link>
             <Link className="btn btn-ghost" to="/intake">Request a Consult</Link>
           </div>
@@ -37,7 +37,7 @@ export default function Home() {
           <p>Tell us about your project. We'll meet you in the Command Center.</p>
           <Link className="btn btn-primary" to="/intake">
             Start a Consult
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </Link>
         </div>
       </section>

@@ -93,7 +93,7 @@ export default function AppShell({ children }) {
               `bn-tab${isActive ? " active" : ""}${t.primary ? " primary" : ""}`
             }
           >
-            <span className="bn-ico">{t.icon}</span>
+            <span className="bn-ico" aria-hidden="true">{t.icon}</span>
             <span className="bn-lbl">{t.label}</span>
           </NavLink>
         ))}
