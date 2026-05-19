@@ -1,0 +1,215 @@
+Update the “General Consult” section into a lightweight operational client access system.
+
+Keep the existing visual style, animations, colors, and command-center aesthetic exactly as they currently are.
+
+Do NOT redesign the entire web app.
+Only upgrade the “General Consult / Start” workflow.
+
+━━━━━━━━━━━
+
+CURRENT POSITIONING
+
+The experience should feel like:
+- a technical operations portal
+- a command-center intake workflow
+- a lightweight client access system
+
+NOT:
+- a generic contact form
+- a corporate support desk
+- a freelancer intake page
+
+━━━━━━━━━━━
+
+NEW FLOW STRUCTURE
+
+Landing View:
+SMART INTAKE
+
+Tell us about your project.
+
+Submissions route to our Discord Command Center.
+A real-time ping also fires to our private #admin-leads channel — your details never get lost.
+
+1 Submit
+Form posts to the operations channel
+
+2 Redirect
+You land in the Discord Command Center
+
+3 Create a Ticket
+Open a ticket inside the server to be attended to
+
+━━━━━━━━━━━
+
+ACCOUNT SYSTEM
+
+Before accessing the intake form:
+Users should create a lightweight operational access account.
+
+Simple signup only:
+- Full Name
+- Email
+- Password
+
+After signup:
+Send a verification code to the email.
+
+User must input the verification code before account activation.
+
+━━━━━━━━━━━
+
+LOGIN FLOW
+
+Returning users should see:
+- simple login form
+- email + password only
+
+Keep login lightweight and fast.
+
+━━━━━━━━━━━
+
+TERMS OF SERVICE + PRIVACY POLICY
+
+Before account creation:
+User must check a required checkbox.
+
+Text:
+
+☑ I agree to the Terms of Service and Privacy Policy
+
+“Terms of Service” and “Privacy Policy” should be clickable links.
+
+When clicked:
+Open a dark-mode popup/modal overlay containing the FULL legal details.
+
+Do NOT redirect users away from the workflow.
+
+━━━━━━━━━━━
+
+TERMS OF SERVICE CONTENT
+
+Include:
+- payment terms
+- refund limitations
+- service scope clarification
+- testing limitations
+- no guarantee of app approval/ranking
+- project timeline variability
+- communication handled primarily through Discord/email
+- limitation of liability
+- user responsibility for submitted project content
+- operational workflow acknowledgment
+
+Tone should feel:
+- professional
+- startup-oriented
+- technical
+- concise
+- operational
+
+NOT:
+- aggressive legal language
+- giant corporate wall of text
+
+━━━━━━━━━━━
+
+PRIVACY POLICY CONTENT
+
+Include:
+- basic user information collection
+- intake/project data handling
+- Discord workflow acknowledgment
+- communication storage
+- no sale of user data
+- operational/admin access only
+- security-focused language
+- third-party integrations acknowledgement (Calendly, Discord, email systems)
+
+Keep concise and modern.
+
+━━━━━━━━━━━
+
+GENERAL CONSULT SECTION
+
+Keep existing structure but improve it.
+
+Section title:
+SMART INTAKE
+
+Subtext:
+Tell us about your project.
+
+Keep operational flow UI:
+1 Submit
+2 Redirect
+3 Create Ticket
+
+━━━━━━━━━━━
+
+GENERAL CONSULT FORM
+
+// GENERAL CONSULT
+
+Fields:
+- Full Name
+- Email
+- Project URL / Link
+- Project Type
+- Current Stage
+- Main Issue / Goal
+- Referral Source
+
+━━━━━━━━━━━
+
+CONSULTATION SECTION
+
+Add a new block inside the page:
+
+🚀 START LIVE CONSULT
+
+Text:
+Need direct technical discussion, project evaluation, or operational guidance?
+
+Button:
+Book Operational Consult
+
+Calendly Link:
+https://calendly.com/tragency-ops-proton/30min
+
+Open Calendly in:
+- embedded modal
+OR
+- smooth overlay panel
+
+Do NOT redirect users abruptly.
+
+━━━━━━━━━━━
+
+FINAL ACTION REQUIRED BLOCK
+
+Text:
+
+After submission, you will be redirected to our Discord Command Center.
+You must manually create a ticket inside the server to be attended to by our operations team.
+
+Main button:
+Submit & Enter Command Center
+
+━━━━━━━━━━━
+
+IMPORTANT UX REQUIREMENTS
+
+The entire experience should feel:
+- operational
+- technical
+- systemized
+- premium
+- startup-focused
+
+NOT:
+- overly corporate
+- enterprise-heavy
+- complicated SaaS dashboard
+
+Keep it lightweight but sophisticated.

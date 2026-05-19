@@ -1,5 +1,6 @@
 import React from "react";
 import { NavLink, Link, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 import InstallPrompt from "./InstallPrompt.jsx";
 
 const Icon = {
@@ -51,6 +52,7 @@ function Brand() {
 
 export default function AppShell({ children }) {
   const location = useLocation();
+  const { session, logout } = useAuth();
 
   React.useEffect(() => {
     window.scrollTo(0, 0);
@@ -67,7 +69,14 @@ export default function AppShell({ children }) {
                 {t.label}
               </NavLink>
             ))}
-            <NavLink to="/intake" className="nav-cta">Start Consult</NavLink>
+            {session ? (
+              <div className="nav-user">
+                <span className="nav-user-name">{session.name.split(" ")[0]}</span>
+                <button className="nav-logout" onClick={logout}>Sign Out</button>
+              </div>
+            ) : (
+              <NavLink to="/intake" className="nav-cta">Start Consult</NavLink>
+            )}
           </div>
         </div>
       </nav>

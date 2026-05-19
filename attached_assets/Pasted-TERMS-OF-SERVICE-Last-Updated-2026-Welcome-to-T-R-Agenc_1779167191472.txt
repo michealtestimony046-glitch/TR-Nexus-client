@@ -1,0 +1,108 @@
+TERMS OF SERVICE
+
+Last Updated: 2026
+
+Welcome to T/R Agency.
+
+By accessing our platform, submitting project information, booking consultations, purchasing services, or entering our Discord Command Center, you agree to the following operational terms.
+
+1. SERVICE SCOPE
+
+T/R Agency provides technical operations services including:
+• QA testing
+• app stability testing
+• Google Play closed testing participation
+• technical audits
+• MVP development
+• performance optimization
+• software engineering support
+• operational consultations
+
+Service availability may vary depending on operational capacity and project requirements.
+
+2. NO GUARANTEE OF PLATFORM APPROVAL OR RANKING
+
+While we provide testing, optimization, and operational support, T/R Agency does not guarantee:
+• Google Play approval
+• App Store approval
+• ranking placement
+• downloads
+• revenue growth
+• platform visibility
+• user retention outcomes
+
+Final platform decisions remain under the control of Google, Apple, Amazon, or other third-party platforms.
+
+3. TESTING LIMITATIONS
+
+Testing services are designed to identify issues, validate flows, and improve operational stability.
+
+However:
+• not all bugs can be detected
+• device behavior may vary
+• third-party systems may behave unpredictably
+• future updates may introduce new issues
+
+Clients remain responsible for final deployment decisions.
+
+4. PAYMENT TERMS
+
+Payments must be completed before operational work begins unless otherwise agreed.
+
+Certain services may require milestone-based payments or subscription renewals.
+
+Failure to complete payment may pause or terminate active operations.
+
+5. REFUND POLICY
+
+Due to the technical and operational nature of our services:
+• refunds are generally not available after work has started
+• partial refunds may be reviewed only under exceptional circumstances
+• digital/testing services already delivered are non-refundable
+
+6. CLIENT RESPONSIBILITY
+
+Clients are responsible for:
+• providing accurate project information
+• maintaining lawful content and software
+• ensuring they have rights to submitted materials
+• securing their own developer/platform accounts
+
+T/R Agency is not responsible for misuse of third-party platforms or violations caused by client-provided materials.
+
+7. COMMUNICATION CHANNELS
+
+Operational communication may occur through:
+• Discord
+• email
+• intake systems
+• consultation platforms
+
+Clients acknowledge that response times may vary depending on workload and operational schedules.
+
+8. LIMITATION OF LIABILITY
+
+T/R Agency shall not be held liable for:
+• platform rejection
+• lost revenue
+• indirect damages
+• data loss caused by third-party systems
+• deployment decisions made by clients
+• service interruptions outside our control
+
+All services are provided on a best-effort operational basis.
+
+9. OPERATIONAL ACCESS
+
+Users accessing the platform may be required to:
+• create an operational access account
+• verify email ownership
+• accept these terms before proceeding
+
+Access may be restricted or revoked for abuse, fraud, harassment, or misuse of operational systems.
+
+10. MODIFICATIONS
+
+T/R Agency may update operational systems, pricing, workflows, or policies at any time to improve service quality and platform stability.
+
+Continued use of the platform indicates acceptance of updated terms.

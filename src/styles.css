@@ -498,6 +498,212 @@ section { padding: 90px 0; position: relative; }
 .notice strong { color: var(--gold); display: block; margin-bottom: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; }
 .intake-form .btn-primary { width: 100%; justify-content: center; padding: 14px; font-size: 14px; }
 
+/* AUTH GATE */
+.auth-gate {
+  max-width: 520px; margin: 80px auto;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+}
+.auth-gate h2 { font-size: clamp(26px, 4vw, 36px); margin: 0; letter-spacing: -0.02em; }
+.auth-gate p { color: var(--text-dim); font-size: 16px; line-height: 1.65; margin: 0; max-width: 400px; }
+.auth-gate-actions { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 8px; }
+
+/* AUTH PAGE */
+.auth-page {}
+.auth-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+@media (max-width: 900px) { .auth-wrap { grid-template-columns: 1fr; gap: 32px; } }
+.auth-side h2 { font-size: clamp(28px, 4vw, 40px); margin: 14px 0 16px; letter-spacing: -0.02em; line-height: 1.1; }
+.auth-side .lead-sm { color: var(--text-dim); font-size: 16px; margin: 0 0 32px; }
+
+.auth-form {}
+.auth-forgot-row { display: flex; justify-content: flex-end; margin: -10px 0 14px; }
+.auth-text-btn {
+  background: none; border: none; padding: 0;
+  color: var(--neon); font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s;
+}
+.auth-text-btn:hover { opacity: 0.75; }
+.auth-error {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 10px; padding: 12px 14px;
+  font-size: 13px; color: var(--danger); line-height: 1.5;
+  margin-bottom: 14px;
+}
+.auth-switch {
+  margin-top: 20px; text-align: center;
+  font-size: 13px; color: var(--text-dim);
+}
+.auth-done {
+  text-align: center; padding: 24px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.auth-done-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid var(--line-strong);
+  color: var(--neon); font-size: 22px;
+  display: grid; place-items: center;
+}
+.auth-done h4 { margin: 0; font-size: 18px; font-weight: 700; }
+.auth-done p { margin: 0; color: var(--text-dim); font-size: 14px; line-height: 1.6; max-width: 300px; }
+
+/* TOS CHECKBOX */
+.tos-field { margin-top: 4px; }
+.tos-check-label {
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px; color: var(--text-dim); line-height: 1.5;
+  cursor: pointer;
+}
+.tos-check-label input[type="checkbox"] {
+  flex-shrink: 0; width: 16px; height: 16px; margin-top: 2px;
+  accent-color: var(--neon);
+}
+.legal-link {
+  background: none; border: none; padding: 0;
+  color: var(--neon); font-size: 13px; font-weight: 600; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+
+/* VERIFICATION CODE BOX */
+.code-box {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg); border: 1px solid var(--line-strong);
+  border-radius: 10px; padding: 10px 14px; margin-top: 8px;
+}
+.code-box-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 28px; font-weight: 700; letter-spacing: 0.18em;
+  color: var(--neon); flex: 1; text-align: center;
+}
+.code-box-copy {
+  flex-shrink: 0; padding: 6px 14px; border-radius: 8px;
+  background: var(--neon-soft); color: var(--neon);
+  border: 1px solid var(--line-strong);
+  font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+  transition: all .15s;
+}
+.code-box-copy:hover { background: var(--neon); color: #061018; }
+
+/* NAV USER STATE */
+.nav-user { display: flex; align-items: center; gap: 10px; }
+.nav-user-name {
+  font-size: 13px; font-weight: 600; color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+.nav-logout {
+  background: none; border: 1px solid var(--line-strong);
+  border-radius: 8px; padding: 6px 12px;
+  font-size: 12px; font-weight: 600; color: var(--text-dim);
+  transition: all .15s;
+}
+.nav-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+/* LEGAL MODAL */
+.legal-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(5, 8, 18, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 0;
+  animation: fadeIn .2s ease;
+}
+@media (min-width: 700px) { .legal-overlay { align-items: center; padding: 24px; } }
+
+.legal-panel {
+  width: 100%; max-width: 720px;
+  background: #0f1525;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px 20px 0 0;
+  display: flex; flex-direction: column;
+  max-height: 92dvh;
+  animation: slideUp .28s cubic-bezier(.16,1,.3,1);
+  overflow: hidden;
+}
+@media (min-width: 700px) { .legal-panel { border-radius: 20px; max-height: 88dvh; } }
+
+.legal-header {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.legal-tabs { display: flex; gap: 6px; }
+.legal-tab {
+  padding: 8px 16px; border-radius: 8px;
+  background: transparent; color: var(--text-dim);
+  border: 1px solid var(--line);
+  font-size: 13px; font-weight: 600;
+  transition: all .15s;
+}
+.legal-tab.active { background: var(--neon-soft); color: var(--neon); border-color: var(--line-strong); }
+.legal-tab:hover:not(.active) { border-color: var(--line-strong); color: var(--text); }
+
+.legal-body {
+  overflow-y: auto; flex: 1;
+  padding: 28px 28px;
+  display: flex; flex-direction: column; gap: 24px;
+}
+.legal-doc-head { margin-bottom: 4px; }
+.legal-doc-head h3 { margin: 8px 0 4px; font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+.legal-updated { margin: 0; font-size: 12px; color: var(--text-mute); font-family: 'JetBrains Mono', monospace; }
+.legal-section { display: flex; flex-direction: column; gap: 8px; }
+.legal-section-title {
+  margin: 0; font-size: 13px; font-weight: 700;
+  color: var(--text); letter-spacing: -0.01em;
+}
+.legal-section-body { margin: 0; color: var(--text-dim); font-size: 13px; line-height: 1.65; }
+.legal-footer {
+  padding: 18px 28px;
+  border-top: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+/* CONSULT BLOCK */
+.consult-block {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  background: linear-gradient(135deg, rgba(56,189,248,0.06), rgba(56,189,248,0.02));
+  border: 1px solid var(--line-strong);
+  border-radius: 16px; padding: 28px 32px;
+  margin-bottom: 48px;
+}
+@media (max-width: 720px) {
+  .consult-block { flex-direction: column; align-items: flex-start; gap: 18px; padding: 22px 20px; }
+}
+.consult-block-left { display: flex; flex-direction: column; gap: 6px; }
+.consult-block-left h3 { margin: 6px 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.01em; }
+.consult-block-left p { margin: 0; color: var(--text-dim); font-size: 14px; }
+.consult-btn { white-space: nowrap; flex-shrink: 0; }
+.btn-outline {
+  padding: 12px 22px; border-radius: 12px;
+  border: 1px solid var(--line-strong); background: transparent;
+  color: var(--text); font-size: 14px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 8px;
+  transition: all .2s;
+}
+.btn-outline:hover { background: var(--neon); color: #061018; border-color: var(--neon); }
+
+/* CALENDLY PANEL */
+.calendly-panel {
+  width: 100%; max-width: 900px;
+  background: #0f1525;
+  border: 1px solid var(--line-strong);
+  border-radius: 20px 20px 0 0;
+  display: flex; flex-direction: column;
+  height: 92dvh;
+  animation: slideUp .28s cubic-bezier(.16,1,.3,1);
+  overflow: hidden;
+}
+@media (min-width: 700px) { .calendly-panel { border-radius: 20px; height: 88dvh; } }
+.calendly-panel-header {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 16px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.calendly-frame-wrap { flex: 1; overflow: hidden; background: #fff; }
+.calendly-frame-wrap iframe { display: block; }
+
 /* INSTALL PROMPT */
 .install-prompt {
   position: fixed;
