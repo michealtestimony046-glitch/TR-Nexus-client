@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'logo.jpg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'logo.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'T/R Agency',
         short_name: 'T/R Agency',

@@ -3,7 +3,7 @@ import { mkdirSync } from "node:fs";
 
 mkdirSync("public", { recursive: true });
 
-const SRC = "attached_assets/dev-logo_1776984320105.jpg";
+const SRC = "public/logo.png";
 const BG = { r: 11, g: 15, b: 25, alpha: 1 }; // #0b0f19
 
 async function makeIcon(size, outPath, { padRatio = 0.12 } = {}) {
