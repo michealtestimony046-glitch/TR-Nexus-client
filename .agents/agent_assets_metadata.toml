@@ -12,3 +12,9 @@ id = "1bmhczTumiD7ZQO1dhedQ"
 uri = "file://tr-agency-source.zip"
 type = "unspecified"
 title = "T/R Agency — Full Source Code (.zip)"
+
+[[outputs]]
+id = "WUQTgcyjvFx4_A7-jvVmE"
+uri = "file://tr-agency-github.zip"
+type = "unspecified"
+title = "T/R Agency — Full Source Code (GitHub Ready)"
