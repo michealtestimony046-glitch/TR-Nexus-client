@@ -18,3 +18,9 @@ id = "WUQTgcyjvFx4_A7-jvVmE"
 uri = "file://tr-agency-github.zip"
 type = "unspecified"
 title = "T/R Agency — Full Source Code (GitHub Ready)"
+
+[[outputs]]
+id = "jAn_jxbo5DFNBYHB6t-2e"
+uri = "file://tr-agency-env.zip"
+type = "unspecified"
+title = "T/R Agency — Environment Variables (.env)"
