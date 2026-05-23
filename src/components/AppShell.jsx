@@ -28,6 +28,14 @@ const Icon = {
       <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
     </svg>
   ),
+  portal: (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  ),
 };
 
 const TABS = [
@@ -35,6 +43,13 @@ const TABS = [
   { to: "/about", label: "About", icon: Icon.info },
   { to: "/services", label: "Services", icon: Icon.grid },
   { to: "/intake", label: "Start", icon: Icon.send, primary: true },
+];
+
+const TABS_LOGGED_IN = [
+  { to: "/", label: "Home", icon: Icon.home, end: true },
+  { to: "/about", label: "About", icon: Icon.info },
+  { to: "/services", label: "Services", icon: Icon.grid },
+  { to: "/portal", label: "Portal", icon: Icon.portal, primary: true },
 ];
 
 function Brand() {
@@ -57,6 +72,8 @@ export default function AppShell({ children }) {
   React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [location.pathname]);
+
+  const bottomTabs = session ? TABS_LOGGED_IN : TABS;
 
   return (
     <div className="shell">
@@ -88,7 +105,7 @@ export default function AppShell({ children }) {
       <main className="shell-main">{children}</main>
 
       <nav className="bottom-nav" aria-label="Primary">
-        {TABS.map((t) => (
+        {bottomTabs.map((t) => (
           <NavLink
             key={t.to}
             to={t.to}

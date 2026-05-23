@@ -53,7 +53,6 @@ export function createSession(email) {
   const i = accounts.findIndex((a) => a.email.toLowerCase() === email.toLowerCase());
   if (i !== -1) {
     if (!accounts[i].sessions) accounts[i].sessions = [];
-    // Keep only last 5 sessions
     accounts[i].sessions = accounts[i].sessions.filter((s) => s.expiresAt > Date.now()).slice(-4);
     accounts[i].sessions.push({ token, expiresAt });
     saveAccounts(accounts);
@@ -98,14 +97,14 @@ export function consumePending(type, email, code) {
   );
   if (idx === -1) return null;
   const entry = pending[idx];
-  pending.splice(idx, 1); // single-use: remove immediately
+  pending.splice(idx, 1);
   savePending(pending);
   return entry;
 }
 
 // ── Rate limiting (in-memory) ─────────────────────────────────────────────────
 const rateLimitMap = new Map();
-const RATE_WINDOW = 60 * 1000; // 1 minute
+const RATE_WINDOW = 60 * 1000;
 const RATE_MAX = 3;
 
 export function checkRateLimit(key) {
@@ -137,4 +136,18 @@ export function createProject(project) {
 export function genProjectId() {
   const num = String(Math.floor(1000 + Math.random() * 9000));
   return `TR-2026-${num}`;
+}
+
+export function getAllProjects() {
+  return getProjects().sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+}
+
+export function updateProjectStatus(id, status) {
+  const projects = getProjects();
+  const i = projects.findIndex((p) => p.id === id);
+  if (i === -1) return null;
+  projects[i].status = status;
+  projects[i].updatedAt = new Date().toISOString();
+  saveProjects(projects);
+  return projects[i];
 }
