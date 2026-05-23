@@ -3,8 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSession } from "../auth.js";
 
-const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL || "";
-
 async function fetchProjects() {
   const s = getSession();
   if (!s) return [];
@@ -25,6 +23,16 @@ async function cancelProject(id) {
   return res.json();
 }
 
+async function acceptDelivery(id) {
+  const s = getSession();
+  if (!s) return { ok: false };
+  const res = await fetch(`/api/projects/${id}/accept-delivery`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${s.token}` },
+  });
+  return res.json();
+}
+
 const DELIVERY = {
   "48-Hour App Health Scan": "48 hours",
   "Google Play Testing Compliance Service": "3–5 days",
@@ -37,10 +45,12 @@ const DELIVERY = {
 };
 
 const STATUS_CONFIG = {
-  active:        { label: "ACTIVE — Team Notified",  color: "#38bdf8", pulse: true  },
-  "in-analysis": { label: "IN ANALYSIS",             color: "#a78bfa", pulse: true  },
-  completed:     { label: "COMPLETED",               color: "#4ade80", pulse: false },
-  cancelled:     { label: "CANCELLED",               color: "#6b7280", pulse: false },
+  active:                { label: "ACTIVE — Team Notified",     color: "#38bdf8", pulse: true  },
+  "in-analysis":         { label: "IN ANALYSIS",                color: "#a78bfa", pulse: true  },
+  "pending-delivery":    { label: "PENDING DELIVERY",           color: "#ffaa00", pulse: true  },
+  completed:             { label: "COMPLETED",                  color: "#4ade80", pulse: false },
+  "pending-cancellation":{ label: "PENDING CANCELLATION",       color: "#ffaa00", pulse: true  },
+  cancelled:             { label: "CANCELLED",                  color: "#6b7280", pulse: false },
 };
 
 function timelineSteps(project) {
@@ -60,7 +70,8 @@ function timelineSteps(project) {
 
   return steps.map((s, i) => {
     let done = elapsed >= s.doneAfter;
-    if (status === "in-analysis" && i <= 4) done = true;
+    if (status === "in-analysis" && i <= 3) done = true;
+    if (status === "pending-delivery" && i <= 4) done = true;
     if (status === "completed") done = true;
     return { ...s, done };
   });
@@ -95,6 +106,8 @@ function ProjectCard({ project, selected, onClick }) {
       onClick={onClick}
       style={project.status === "completed" ? { borderColor: "#4ade8033" } :
              project.status === "cancelled"  ? { borderColor: "#6b728033", opacity: 0.7 } :
+             project.status === "pending-delivery" ? { borderColor: "#ffaa0033" } :
+             project.status === "pending-cancellation" ? { borderColor: "#ffaa0033" } :
              project.status === "in-analysis" ? { borderColor: "#a78bfa33" } : {}}
     >
       <div className="portal-card-top">
@@ -204,7 +217,7 @@ function CancelModal({ project, onConfirm, onClose, cancelling }) {
           <strong>{project.id}</strong> — {project.service}
         </div>
         <p style={{ margin: "0 0 20px", color: "var(--muted, #666)", fontSize: 13 }}>
-          Our team will be notified immediately. This action cannot be undone.
+          Our team will be notified immediately and must approve the cancellation.
         </p>
         <div style={{ display: "flex", gap: 10 }}>
           <button
@@ -228,7 +241,7 @@ function CancelModal({ project, onConfirm, onClose, cancelling }) {
               opacity: cancelling ? 0.6 : 1,
             }}
           >
-            {cancelling ? "Cancelling…" : "Yes, Cancel"}
+            {cancelling ? "Requesting…" : "Request Cancellation"}
           </button>
         </div>
       </div>
@@ -244,6 +257,7 @@ export default function Portal() {
   const [loading, setLoading] = useState(true);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelling, setCancelling] = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
   useEffect(() => {
     if (!session) { navigate("/login", { replace: true }); return; }
@@ -260,11 +274,23 @@ export default function Portal() {
     const res = await cancelProject(cancelTarget.id);
     if (res.ok) {
       setProjects((prev) =>
-        prev.map((p) => p.id === cancelTarget.id ? { ...p, status: "cancelled" } : p)
+        prev.map((p) => p.id === cancelTarget.id ? { ...p, status: "pending-cancellation" } : p)
       );
     }
     setCancelling(false);
     setCancelTarget(null);
+  }
+
+  async function handleAcceptDelivery() {
+    if (!active) return;
+    setAccepting(true);
+    const res = await acceptDelivery(active.id);
+    if (res.ok) {
+      setProjects((prev) =>
+        prev.map((p) => p.id === active.id ? { ...p, status: "completed" } : p)
+      );
+    }
+    setAccepting(false);
   }
 
   return (
@@ -338,8 +364,27 @@ export default function Portal() {
                     <StatsRow project={active} />
                     <TrustBlock />
 
-                    {/* Cancel button — only show if not completed or already cancelled */}
-                    {active.status !== "completed" && active.status !== "cancelled" && (
+                    {/* Accept Delivery button — only show when pending-delivery */}
+                    {active.status === "pending-delivery" && (
+                      <div style={{ marginTop: 20 }}>
+                        <button
+                          onClick={handleAcceptDelivery}
+                          disabled={accepting}
+                          style={{
+                            width: "100%", padding: "10px 0", borderRadius: 8,
+                            border: "1px solid #4ade8044", background: "#4ade8011",
+                            color: "#4ade80", fontSize: 12, fontWeight: 700,
+                            cursor: "pointer", letterSpacing: "0.05em",
+                            opacity: accepting ? 0.6 : 1,
+                          }}
+                        >
+                          {accepting ? "Accepting…" : "✓ Accept Delivery"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Cancel button — only show if active or in-analysis */}
+                    {(active.status === "active" || active.status === "in-analysis") && (
                       <div style={{ marginTop: 20 }}>
                         <button
                           onClick={() => setCancelTarget(active)}
@@ -352,6 +397,16 @@ export default function Portal() {
                         >
                           Cancel Project
                         </button>
+                      </div>
+                    )}
+
+                    {active.status === "pending-cancellation" && (
+                      <div style={{
+                        marginTop: 20, padding: "14px 16px", borderRadius: 8,
+                        border: "1px solid #ffaa0033", background: "#ffaa0011",
+                        color: "#ffaa00", fontSize: 13, textAlign: "center",
+                      }}>
+                        ⏳ Cancellation request pending admin approval
                       </div>
                     )}
 
@@ -371,7 +426,7 @@ export default function Portal() {
                         border: "1px solid #6b728033", background: "#6b728011",
                         color: "#6b7280", fontSize: 13, textAlign: "center",
                       }}>
-                        This project was cancelled
+                        ✕ This project was cancelled
                       </div>
                     )}
                   </div>

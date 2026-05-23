@@ -78,7 +78,7 @@ router.patch("/:id/cancel", async (req, res) => {
     if (!user) return res.json({ ok: false, error: "Unauthorized." });
 
     const { id } = req.params;
-    const project = updateProjectStatus(id, "cancelled");
+    const project = updateProjectStatus(id, "pending-cancellation");
     if (!project) return res.json({ ok: false, error: "Project not found." });
 
     const webhookUrl = process.env.VITE_DISCORD_WEBHOOK_URL || "";
@@ -89,15 +89,15 @@ router.patch("/:id/cancel", async (req, res) => {
         body: JSON.stringify({
           username: "T/R Agency — System",
           embeds: [{
-            title: "⚠️ Project Cancellation Request",
-            color: 0xff4444,
+            title: "⚠️ Project Cancellation Request (AWAITING APPROVAL)",
+            color: 0xffaa00,
             fields: [
               { name: "Project ID", value: project.id, inline: true },
               { name: "Client", value: project.name, inline: true },
               { name: "Email", value: project.email, inline: true },
               { name: "Service", value: project.service, inline: false },
             ],
-            footer: { text: "Client requested cancellation via portal" },
+            footer: { text: "Client requested cancellation — Admin approval needed" },
             timestamp: new Date().toISOString(),
           }],
         }),
@@ -111,13 +111,30 @@ router.patch("/:id/cancel", async (req, res) => {
   }
 });
 
-// PATCH /api/projects/:id  — admin only — must be AFTER /:id/cancel
+// PATCH /api/projects/:id/accept-delivery — client accepts delivery
+router.patch("/:id/accept-delivery", async (req, res) => {
+  try {
+    const user = validateSession(getToken(req));
+    if (!user) return res.json({ ok: false, error: "Unauthorized." });
+
+    const { id } = req.params;
+    const project = updateProjectStatus(id, "completed");
+    if (!project) return res.json({ ok: false, error: "Project not found." });
+
+    return res.json({ ok: true, project });
+  } catch (err) {
+    console.error("[projects/accept-delivery]", err.message);
+    return res.json({ ok: false, error: "Failed to accept delivery." });
+  }
+});
+
+// PATCH /api/projects/:id  — admin only — must be AFTER /:id/cancel and /:id/accept-delivery
 router.patch("/:id", (req, res) => {
   try {
     if (!isAdmin(req)) return res.json({ ok: false, error: "Unauthorized." });
     const { id } = req.params;
     const { status } = req.body;
-    const valid = ["active", "in-analysis", "completed", "cancelled"];
+    const valid = ["active", "in-analysis", "pending-delivery", "completed", "pending-cancellation", "cancelled"];
     if (!valid.includes(status)) return res.json({ ok: false, error: "Invalid status." });
     const project = updateProjectStatus(id, status);
     if (!project) return res.json({ ok: false, error: "Project not found." });

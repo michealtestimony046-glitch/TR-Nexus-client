@@ -22,10 +22,12 @@ function fmt(iso) {
 
 function StatusBadge({ status }) {
   const map = {
-    active:      { label: "ACTIVE",      color: "#38bdf8" },
-    "in-analysis": { label: "IN ANALYSIS", color: "#a78bfa" },
-    completed:   { label: "COMPLETED",   color: "#4ade80" },
-    cancelled:   { label: "CANCELLED",   color: "#6b7280" },
+    active:                { label: "ACTIVE",                    color: "#38bdf8" },
+    "in-analysis":         { label: "IN ANALYSIS",               color: "#a78bfa" },
+    "pending-delivery":    { label: "PENDING DELIVERY",          color: "#ffaa00" },
+    completed:             { label: "COMPLETED",                 color: "#4ade80" },
+    "pending-cancellation":{ label: "PENDING CANCELLATION",      color: "#ffaa00" },
+    cancelled:             { label: "CANCELLED",                 color: "#6b7280" },
   };
   const s = map[status] || { label: status.toUpperCase(), color: "#6b7280" };
   return (
@@ -186,7 +188,9 @@ export default function Admin() {
     all: projects.length,
     active: projects.filter((p) => p.status === "active").length,
     "in-analysis": projects.filter((p) => p.status === "in-analysis").length,
+    "pending-delivery": projects.filter((p) => p.status === "pending-delivery").length,
     completed: projects.filter((p) => p.status === "completed").length,
+    "pending-cancellation": projects.filter((p) => p.status === "pending-cancellation").length,
     cancelled: projects.filter((p) => p.status === "cancelled").length,
   };
 
@@ -241,7 +245,9 @@ export default function Admin() {
             { label: "Total", value: counts.all, color: "#fff" },
             { label: "Active", value: counts.active, color: "#38bdf8" },
             { label: "In Analysis", value: counts["in-analysis"], color: "#a78bfa" },
+            { label: "Pending Delivery", value: counts["pending-delivery"], color: "#ffaa00" },
             { label: "Completed", value: counts.completed, color: "#4ade80" },
+            { label: "Pending Cancel", value: counts["pending-cancellation"], color: "#ffaa00" },
             { label: "Cancelled", value: counts.cancelled, color: "#6b7280" },
           ].map((s) => (
             <div key={s.label} style={{
@@ -256,7 +262,7 @@ export default function Admin() {
 
         {/* Filter tabs */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
-          {["all", "active", "in-analysis", "completed", "cancelled"].map((f) => (
+          {["all", "active", "in-analysis", "pending-delivery", "completed", "pending-cancellation", "cancelled"].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -268,7 +274,11 @@ export default function Admin() {
                 cursor: "pointer", textTransform: "capitalize",
               }}
             >
-              {f === "all" ? `All (${counts.all})` : f === "in-analysis" ? `In Analysis (${counts["in-analysis"]})` : `${f.charAt(0).toUpperCase() + f.slice(1)} (${counts[f]})`}
+              {f === "all" ? `All (${counts.all})` : 
+               f === "in-analysis" ? `In Analysis (${counts["in-analysis"]})` :
+               f === "pending-delivery" ? `Pending Delivery (${counts["pending-delivery"]})` :
+               f === "pending-cancellation" ? `Pending Cancel (${counts["pending-cancellation"]})` :
+               `${f.charAt(0).toUpperCase() + f.slice(1)} (${counts[f]})`}
             </button>
           ))}
         </div>
@@ -340,25 +350,63 @@ export default function Admin() {
                         ▶ Start Analysis
                       </button>
                     )}
+
                     {p.status === "in-analysis" && (
                       <button
-                        onClick={() => updateStatus(p.id, "completed")}
+                        onClick={() => updateStatus(p.id, "pending-delivery")}
                         disabled={updating === p.id}
                         style={{
                           padding: "8px 14px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-                          border: "1px solid #4ade8044", background: "#4ade8011",
-                          color: "#4ade80", cursor: "pointer",
+                          border: "1px solid #ffaa0044", background: "#ffaa0011",
+                          color: "#ffaa00", cursor: "pointer",
                           opacity: updating === p.id ? 0.6 : 1,
                         }}
                       >
-                        ✅ Mark Delivered
+                        📤 Request Delivery Approval
                       </button>
                     )}
-                    {p.status === "completed" && (
-                      <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 700 }}>
-                        ✓ Delivered
+
+                    {p.status === "pending-delivery" && (
+                      <span style={{ fontSize: 12, color: "#ffaa00", fontWeight: 700 }}>
+                        ⏳ Awaiting Client Acceptance
                       </span>
                     )}
+
+                    {p.status === "pending-cancellation" && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={() => updateStatus(p.id, "cancelled")}
+                          disabled={updating === p.id}
+                          style={{
+                            padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            border: "1px solid #ff666644", background: "#ff666611",
+                            color: "#ff6666", cursor: "pointer",
+                            opacity: updating === p.id ? 0.6 : 1,
+                          }}
+                        >
+                          ✓ Approve Cancel
+                        </button>
+                        <button
+                          onClick={() => updateStatus(p.id, "in-analysis")}
+                          disabled={updating === p.id}
+                          style={{
+                            padding: "6px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                            border: "1px solid #66aa6644", background: "#66aa6611",
+                            color: "#66aa66", cursor: "pointer",
+                            opacity: updating === p.id ? 0.6 : 1,
+                          }}
+                        >
+                          ✗ Deny Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {p.status === "completed" && (
+                      <span style={{ fontSize: 12, color: "#4ade80", fontWeight: 700 }}>
+                        ✓ Client Accepted
+                      </span>
+                    )}
+
                     {p.status === "cancelled" && (
                       <span style={{ fontSize: 12, color: "#6b7280", fontWeight: 700 }}>
                         ✕ Cancelled
