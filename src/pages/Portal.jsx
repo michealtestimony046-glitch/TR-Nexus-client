@@ -383,8 +383,8 @@ export default function Portal() {
                       </div>
                     )}
 
-                    {/* Cancel button — only show if active or in-analysis */}
-                    {(active.status === "active" || active.status === "in-analysis") && (
+                    {/* Cancel button — show if active, in-analysis, or pending-delivery */}
+                    {(active.status === "active" || active.status === "in-analysis" || active.status === "pending-delivery") && (
                       <div style={{ marginTop: 20 }}>
                         <button
                           onClick={() => setCancelTarget(active)}

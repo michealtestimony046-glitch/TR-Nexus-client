@@ -30,10 +30,14 @@ const Icon = {
   ),
   portal: (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1" />
-      <rect x="14" y="3" width="7" height="7" rx="1" />
-      <rect x="3" y="14" width="7" height="7" rx="1" />
-      <rect x="14" y="14" width="7" height="7" rx="1" />
+      {/* Person circle */}
+      <circle cx="12" cy="7" r="3.5" />
+      {/* Person body */}
+      <path d="M 12 11 C 9.5 11 7 12.5 7 14.5 L 7 21 L 17 21 L 17 14.5 C 17 12.5 14.5 11 12 11" />
+      {/* Badge circle in corner */}
+      <circle cx="19" cy="5" r="3" fill="currentColor" />
+      {/* Checkmark in badge */}
+      <path d="M 17.5 5 L 18.5 6 L 20.5 4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };
@@ -89,7 +93,12 @@ export default function AppShell({ children }) {
             {session ? (
               <div className="nav-user">
                 <NavLink to="/portal" className="nav-portal">
-                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <circle cx="12" cy="7" r="3.5" />
+                    <path d="M 12 11 C 9.5 11 7 12.5 7 14.5 L 7 21 L 17 21 L 17 14.5 C 17 12.5 14.5 11 12 11" />
+                    <circle cx="19" cy="5" r="3" fill="currentColor" />
+                    <path d="M 17.5 5 L 18.5 6 L 20.5 4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                   Portal
                 </NavLink>
                 <span className="nav-user-name">{session.name.split(" ")[0]}</span>
