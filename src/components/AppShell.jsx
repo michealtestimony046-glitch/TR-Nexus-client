@@ -71,6 +71,10 @@ export default function AppShell({ children }) {
             ))}
             {session ? (
               <div className="nav-user">
+                <NavLink to="/portal" className="nav-portal">
+                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                  Portal
+                </NavLink>
                 <span className="nav-user-name">{session.name.split(" ")[0]}</span>
                 <button className="nav-logout" onClick={logout}>Sign Out</button>
               </div>

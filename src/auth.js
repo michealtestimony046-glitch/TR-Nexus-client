@@ -25,7 +25,9 @@ async function post(path, body) {
 }
 
 export async function signup(name, email, password) {
-  return post("/api/auth/signup", { name, email, password });
+  const res = await post("/api/auth/signup", { name, email, password });
+  if (res.ok && res.session) saveSession(res.session);
+  return res;
 }
 
 export async function verifyEmail(email, code) {

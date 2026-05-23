@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, "data");
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
 const PENDING_FILE = path.join(DATA_DIR, "pending.json");
+const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -114,4 +115,26 @@ export function checkRateLimit(key) {
   entry.count++;
   rateLimitMap.set(key, entry);
   return entry.count <= RATE_MAX;
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+export function getProjects() { return readJSON(PROJECTS_FILE, []); }
+function saveProjects(p) { writeJSON(PROJECTS_FILE, p); }
+
+export function getProjectsByEmail(email) {
+  return getProjects()
+    .filter((p) => p.email.toLowerCase() === email.toLowerCase())
+    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+}
+
+export function createProject(project) {
+  const projects = getProjects();
+  projects.push(project);
+  saveProjects(projects);
+  return project;
+}
+
+export function genProjectId() {
+  const num = String(Math.floor(1000 + Math.random() * 9000));
+  return `TR-2026-${num}`;
 }

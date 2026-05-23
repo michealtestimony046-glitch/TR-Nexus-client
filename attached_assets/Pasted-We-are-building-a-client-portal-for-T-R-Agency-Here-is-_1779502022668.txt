@@ -1,0 +1,26 @@
+We are building a client portal for T/R Agency. Here is everything you need to build:
+
+AUTH SYSTEM
+Add login and create account page with four options: Google OAuth, Discord OAuth, GitHub OAuth, and email with password. Password rules are simple: minimum 8 characters, at least one capital letter, one lowercase letter, one number, nothing too strict. After creating an account or logging in they land on their portal dashboard.
+
+AFTER FORM SUBMISSION FLOW
+We already have a submission form and detail panel, keep that exactly as it is. After a client submits the form do not redirect them immediately. Instead show a message on screen saying something like "Your project has been initialized — check your portal to see your full project details and timeline" then after 5 seconds automatically redirect them to the Discord link.
+
+THE CLIENT PORTAL DASHBOARD
+This is the most important part, make it look premium and advanced like a real agency system. When a client logs in they should see:
+
+A project card at the top showing a unique project ID in the format TR-2026-XXXX, the service they chose, the date and time they submitted, and a status badge that says ACTIVE — Team Notified.
+
+Below that an activity timeline that auto-generates based on their submission timestamp showing steps like Project initialized, Request received by T/R Agency, Team notification sent, Awaiting Discord session, then greyed out future steps like Analysis begins and Report delivered. This should look live and automatic.
+
+A stats row showing their number of active projects, the service price they paid, and the estimated delivery window for their chosen service.
+
+A trust and security block at the bottom with lines like your project is private and encrypted, average first response under 2 hours, protected under T/R Agency client agreement.
+
+A button or section that says Initialize Another Project that links back to the services section of the website so they can submit again.
+
+If a client submitted a General Consultation request that should also appear in their portal the same way as any other project with its own card and timeline.
+
+Make the whole portal look dark, sleek and high end. Think mission control not a basic dashboard. The client should open this and immediately feel like they hired a serious professional agency.
+
+Store everything in a simple database, just the user info, service chosen, app details and timestamp. The visual complexity comes from how the data is displayed not from heavy backend logic.

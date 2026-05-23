@@ -9,7 +9,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { refresh } = useAuth();
-  const next = params.get("next") || "/intake";
+  const next = params.get("next") || "/portal";
 
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -94,8 +94,8 @@ export default function AuthPage() {
 
           <ul className="step-list">
             <li><span className="step-n">1</span><div><strong>Create Account</strong><em>Set up your operational access.</em></div></li>
-            <li><span className="step-n">2</span><div><strong>Verify Email</strong><em>Confirm your identity with a one-time code.</em></div></li>
-            <li><span className="step-n">3</span><div><strong>Submit Intake</strong><em>Access the project intake workflow.</em></div></li>
+            <li><span className="step-n">2</span><div><strong>Access Portal</strong><em>View your project dashboard.</em></div></li>
+            <li><span className="step-n">3</span><div><strong>Submit Intake</strong><em>Initialize a project with our team.</em></div></li>
           </ul>
         </div>
 
@@ -188,7 +188,7 @@ export default function AuthPage() {
               {error && <div className="auth-error">{error}</div>}
 
               <button type="submit" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 8 }} disabled={loading}>
-                {loading ? "Processing…" : { login: "Sign In", signup: "Create Account", verify: "Verify & Activate", forgot: "Send Reset Code", reset: "Reset Password" }[mode]}
+                {loading ? "Processing…" : { login: "Sign In", signup: "Create Account", verify: "Verify & Activate", forgot: "Continue", reset: "Reset Password" }[mode]}
               </button>
             </form>
           )}

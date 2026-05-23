@@ -1,11 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { getSession } from "../auth.js";
+import { SERVICES } from "../services.js";
 
 const DISCORD_URL = "https://discord.gg/Ex7XWNqDtd";
 const CALENDLY_URL = "https://calendly.com/tragency-ops-proton/30min";
 const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL || "";
 const LEAD_BACKUP_KEY = "tr_agency_lead_backups";
+
+function getPriceForService(serviceName) {
+  for (const cat of SERVICES) {
+    for (const item of cat.items) {
+      if (item.name === serviceName) return item.price;
+    }
+  }
+  return "Custom";
+}
 
 function saveLeadBackup(payload) {
   try {
@@ -38,6 +49,7 @@ async function fireWebhook(payload) {
         title: `New Intake — ${payload.service}`,
         color: 0x38bdf8,
         fields: [
+          { name: "Project ID", value: payload.projectId || "—", inline: true },
           { name: "Name", value: payload.name || "—", inline: true },
           { name: "Email", value: payload.email || "—", inline: true },
           { name: "Project URL", value: payload.projectUrl || "—", inline: true },
@@ -67,8 +79,22 @@ async function fireWebhook(payload) {
   return { ok: false, reason: "webhook_failed" };
 }
 
+async function saveProject(payload, token) {
+  try {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.json();
+  } catch { return { ok: false }; }
+}
+
 function CalendlyModal({ onClose }) {
-  React.useEffect(() => {
+  useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
@@ -102,6 +128,43 @@ function CalendlyModal({ onClose }) {
   );
 }
 
+function InitializedScreen({ projectId, onRedirect }) {
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    const t = setInterval(() => setCountdown((c) => c - 1), 1000);
+    const r = setTimeout(onRedirect, 5000);
+    return () => { clearInterval(t); clearTimeout(r); };
+  }, []);
+
+  return (
+    <div className="initialized-screen">
+      <div className="init-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+        </svg>
+      </div>
+      <div className="init-tag">// Project Initialized</div>
+      <h2 className="init-id">{projectId}</h2>
+      <p className="init-msg">
+        Your project has been initialized — check your portal to see your full project details and timeline.
+      </p>
+      <p className="init-redirect">
+        Redirecting to Discord Command Center in <strong>{countdown}s</strong>…
+      </p>
+      <div className="init-steps">
+        <div className="init-step done"><span>✓</span> Project record created</div>
+        <div className="init-step done"><span>✓</span> Team notification sent</div>
+        <div className="init-step done"><span>✓</span> Portal updated</div>
+      </div>
+      <button className="btn btn-primary" onClick={onRedirect}>
+        Enter Command Center Now
+        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  );
+}
+
 export default function Intake() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -116,6 +179,8 @@ export default function Intake() {
   const [referral, setReferral] = useState("Official Website");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+  const [projectId, setProjectId] = useState("");
   const [calendlyOpen, setCalendlyOpen] = useState(false);
 
   if (!session) {
@@ -132,7 +197,7 @@ export default function Intake() {
             <div className="auth-gate-actions">
               <button className="btn btn-primary" onClick={() => navigate(`/login?next=/intake${presetService ? `?service=${encodeURIComponent(presetService)}` : ""}`)}>
                 Sign In or Create Account
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14M13 5l7 7-7 7" />
                 </svg>
               </button>
@@ -144,13 +209,27 @@ export default function Intake() {
     );
   }
 
+  if (initialized) {
+    return (
+      <section className="intake page-pad-top">
+        <div className="container">
+          <InitializedScreen projectId={projectId} onRedirect={redirectToDiscord} />
+        </div>
+      </section>
+    );
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
 
+    const s = getSession();
+    const price = getPriceForService(presetService);
+
     const payload = {
       service: presetService || "General Consult",
+      price,
       name,
       email: session.email,
       projectUrl,
@@ -163,16 +242,24 @@ export default function Intake() {
     };
 
     saveLeadBackup(payload);
-    const result = await fireWebhook(payload);
-    if (!result.ok) console.error("[T/R Intake] Webhook delivery failed:", result.reason, payload);
-    redirectToDiscord();
+
+    const [webhookResult, projectResult] = await Promise.all([
+      fireWebhook(payload),
+      saveProject(payload, s?.token),
+    ]);
+
+    if (!webhookResult.ok) console.error("[T/R Intake] Webhook failed:", webhookResult.reason);
+
+    const pid = projectResult?.project?.id || "TR-2026-XXXX";
+    setProjectId(pid);
+    setInitialized(true);
+    setSubmitting(false);
   }
 
   return (
     <section className="intake page-pad-top">
       <div className="container">
 
-        {/* Calendly Consult Block */}
         <div className="consult-block">
           <div className="consult-block-left">
             <span className="section-tag">// Live Operations</span>
@@ -181,7 +268,7 @@ export default function Intake() {
           </div>
           <button className="btn btn-outline consult-btn" onClick={() => setCalendlyOpen(true)}>
             Book Operational Consult
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M5 12h14M13 5l7 7-7 7" />
             </svg>
           </button>
@@ -203,14 +290,14 @@ export default function Intake() {
               </li>
               <li>
                 <span className="step-n">2</span>
-                <div><strong>Redirect</strong><em>You land in the Discord Command Center.</em></div>
+                <div><strong>Portal Updated</strong><em>Your project appears in your dashboard.</em></div>
               </li>
               <li>
                 <span className="step-n">3</span>
-                <div><strong>Create a Ticket</strong><em>Open a ticket inside the server to be attended to.</em></div>
+                <div><strong>Discord</strong><em>Open a ticket in the Command Center.</em></div>
               </li>
             </ul>
-            <Link to="/services" className="back-link">← Back to services</Link>
+            <Link to="/portal" className="back-link">← Back to portal</Link>
           </div>
 
           <form className="intake-form" onSubmit={handleSubmit}>
@@ -277,8 +364,8 @@ export default function Intake() {
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={submitting}>
-              {submitting ? "Submitting…" : "Submit & Enter Command Center"}
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              {submitting ? "Initializing…" : "Submit & Initialize Project"}
+              <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M5 12h14M13 5l7 7-7 7" />
               </svg>
             </button>

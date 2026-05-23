@@ -7,6 +7,7 @@ import About from "./pages/About.jsx";
 import Services from "./pages/Services.jsx";
 import Intake from "./pages/Intake.jsx";
 import Auth from "./pages/Auth.jsx";
+import Portal from "./pages/Portal.jsx";
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
           <Route path="/services" element={<Services />} />
           <Route path="/intake" element={<Intake />} />
+          <Route path="/portal" element={<Portal />} />
           <Route path="/login" element={<Auth />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
