@@ -7,6 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html',
+      },
       includeAssets: ['favicon.svg', 'logo.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'T/R Agency',
@@ -23,6 +28,7 @@ export default defineConfig({
         ]
       },
       workbox: {
+        cacheId: 'tr-agency-v2',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         runtimeCaching: [
           {
