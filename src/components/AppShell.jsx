@@ -184,48 +184,51 @@ export default function AppShell({ children }) {
   }
 
   const isPortal = location.pathname === "/portal";
+  const isHome = location.pathname === "/";
   const bottomTabs = session ? TABS_LOGGED_IN : TABS;
 
   return (
     <div className="shell">
-      <nav className="nav">
-        <div className="container nav-inner">
-          <Brand />
-          <div className="nav-links">
-            {TABS.filter((t) => !t.primary).map((t) => (
-              <NavLink
-                key={t.to}
-                to={t.to}
-                end={t.end}
-                className={({ isActive }) => (isActive ? "active" : "")}
-              >
-                {t.label}
-              </NavLink>
-            ))}
-            {session ? (
-              <div className="nav-user">
-                <NavLink to="/portal" className="nav-portal">
-                  <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <circle cx="12" cy="7" r="3.5" />
-                    <path d="M 12 11 C 9.5 11 7 12.5 7 14.5 L 7 21 L 17 21 L 17 14.5 C 17 12.5 14.5 11 12 11" />
-                    <circle cx="19" cy="5" r="3" fill="currentColor" />
-                    <path d="M 17.5 5 L 18.5 6 L 20.5 4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  Portal
+      {!isHome && (
+        <nav className="nav">
+          <div className="container nav-inner">
+            <Brand />
+            <div className="nav-links">
+              {TABS.filter((t) => !t.primary).map((t) => (
+                <NavLink
+                  key={t.to}
+                  to={t.to}
+                  end={t.end}
+                  className={({ isActive }) => (isActive ? "active" : "")}
+                >
+                  {t.label}
                 </NavLink>
-                <span className="nav-user-name">{session.name.split(" ")[0]}</span>
-                <button className="nav-logout" onClick={logout}>Sign Out</button>
-              </div>
-            ) : (
-              <NavLink to="/intake" className="nav-cta">Start Consult</NavLink>
-            )}
+              ))}
+              {session ? (
+                <div className="nav-user">
+                  <NavLink to="/portal" className="nav-portal">
+                    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <circle cx="12" cy="7" r="3.5" />
+                      <path d="M 12 11 C 9.5 11 7 12.5 7 14.5 L 7 21 L 17 21 L 17 14.5 C 17 12.5 14.5 11 12 11" />
+                      <circle cx="19" cy="5" r="3" fill="currentColor" />
+                      <path d="M 17.5 5 L 18.5 6 L 20.5 4" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    Portal
+                  </NavLink>
+                  <span className="nav-user-name">{session.name.split(" ")[0]}</span>
+                  <button className="nav-logout" onClick={logout}>Sign Out</button>
+                </div>
+              ) : (
+                <NavLink to="/intake" className="nav-cta">Start Consult</NavLink>
+              )}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
-      <main className="shell-main">{children}</main>
+      <main className="shell-main" style={isHome ? { paddingBottom: 0 } : {}}>{children}</main>
 
-      <nav className="bottom-nav" aria-label="Primary">
+      <nav className="bottom-nav" aria-label="Primary" style={isHome ? { display: "none" } : {}}>
         {bottomTabs.map((t) => (
           <NavLink
             key={t.to}

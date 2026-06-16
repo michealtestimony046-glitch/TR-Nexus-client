@@ -78,6 +78,15 @@ app.use((err, _req, res, _next) => {
 if (isProd) {
   const DIST = path.join(__dirname, "../dist");
 
+  // Never cache sw.js, index.html, or manifest so browsers always pick up updates
+  app.use((req, res, next) => {
+    if (/\/(sw\.js|index\.html|manifest\.webmanifest)$/.test(req.path)) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+    }
+    next();
+  });
+
   app.use(express.static(DIST, {
     maxAge: "1d",
     etag: true,
@@ -85,6 +94,7 @@ if (isProd) {
 
   // SPA fallback
   app.use((_req, res) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.sendFile(path.join(DIST, "index.html"));
   });
 }
