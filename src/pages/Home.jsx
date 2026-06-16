@@ -105,19 +105,21 @@ const ALL_STYLES = `
 .h-avatars  { display: flex; }
 
 @media (max-width: 900px) {
-  .hero-wrap  { flex-direction: column; text-align: center; padding: 100px 24px 80px; gap: 60px; }
+  .hero-wrap  { flex-direction: column; text-align: center; padding: 100px 24px 90px; gap: 52px; }
   .hero-text  { flex: none; width: 100%; }
   .hero-phone { flex: none; width: 100%; }
   .h-cta-row  { justify-content: center; }
   .h-trust    { justify-content: center; }
-  .phone-frame { width: 240px !important; height: 490px !important; border-radius: 36px !important; }
-  .badge-tl { display: none !important; }
-  .badge-br { display: none !important; }
+  .phone-frame { width: 220px !important; height: 450px !important; border-radius: 34px !important; }
+  .badge-tl { top: -16px !important; left: -8px !important; }
+  .badge-br { bottom: 40px !important; right: -8px !important; }
   .badge-ml { display: none !important; }
 }
 @media (max-width: 480px) {
-  .hero-wrap { padding: 80px 18px 60px; gap: 52px; }
-  .phone-frame { width: 210px !important; height: 430px !important; }
+  .hero-wrap { padding: 76px 18px 70px; gap: 44px; }
+  .phone-frame { width: 190px !important; height: 390px !important; }
+  .badge-tl { display: none !important; }
+  .badge-br { display: none !important; }
 }
 
 /* ── Sections ── */
@@ -189,7 +191,7 @@ const STARS = n => Array.from({length:5},(_,i) => (
 const REVIEWS = [
   {name:"James K.",flag:"🇺🇸",stars:5,platform:"twitter",text:"T/R Agency found 14 critical bugs before launch. Saved my startup from a disaster. Worth every penny."},
   {name:"Sarah M.",flag:"🇬🇧",stars:5,platform:"linkedin",text:"Finally passed Google Play closed testing thanks to their team. Fast, professional, reliable."},
-  {name:"Emeka O.",flag:"🇳🇬",stars:5,platform:"discord",text:"The QA Insights package was eye-opening. Had no idea how much friction my onboarding had."},
+  {name:"Emeka O.",flag:"🇳🇬",stars:5,platform:"discord",text:"The Launch Intelligence package was eye-opening. Had no idea how much friction my onboarding had."},
   {name:"Charlotte B.",flag:"🇬🇧",stars:5,platform:"producthunt",text:"Submitted Monday, had a full bug report by Wednesday. Incredibly responsive team."},
   {name:"Lucas R.",flag:"🇧🇷",stars:4,platform:"reddit",text:"UX friction analysis helped us increase day-1 retention significantly. Solid service."},
   {name:"Adaeze N.",flag:"🇳🇬",stars:5,platform:"telegram",text:"App stuck in Google Play testing for weeks. T/R Agency solved it in 3 days. Unreal."},
@@ -219,7 +221,7 @@ const REVIEWS = [
   {name:"Chioma I.",flag:"🇳🇬",stars:5,platform:"linkedin",text:"Launch Readiness Report gave us a clear go/no-go. That clarity is priceless."},
   {name:"William F.",flag:"🇬🇧",stars:5,platform:"twitter",text:"Worked with testing agencies before but T/R is different league. Faster and more thorough."},
   {name:"Kelechi U.",flag:"🇳🇬",stars:5,platform:"discord",text:"Helped my app get unstuck from a Google Play review loop in less than a week."},
-  {name:"Grace H.",flag:"🇬🇧",stars:4,platform:"producthunt",text:"QA Insights is perfect for lean teams. Lots of value packed into a single report."},
+  {name:"Grace H.",flag:"🇬🇧",stars:4,platform:"producthunt",text:"Launch Intelligence is perfect for lean teams. Lots of value packed into a single report."},
   {name:"Blessing O.",flag:"🇳🇬",stars:5,platform:"reddit",text:"Straight, honest feedback about our app. No fluff — just actionable findings."},
   {name:"Alice S.",flag:"🇬🇧",stars:5,platform:"telegram",text:"iOS launch went perfectly. Stress-tested every flow and we shipped with full confidence."},
   {name:"Amaka C.",flag:"🇳🇬",stars:5,platform:"replit",text:"Real users, real feedback. Onboarding completion rate jumped after their UX analysis."},
@@ -421,34 +423,42 @@ export default function Home() {
       {/* ══════════════════════════════════════════════
           SECTION 1 — HERO
       ══════════════════════════════════════════════ */}
-      <section style={{ position:"relative", overflow:"hidden", background:"#03050d", minHeight:"100vh" }}>
+      <section style={{ position:"relative", overflow:"hidden", background:"#010208", minHeight:"100vh" }}>
 
-        {/* Aurora blobs */}
+        {/* Aurora blobs — vivid & dramatic */}
         <div style={{ position:"absolute", inset:0, pointerEvents:"none", overflow:"hidden" }}>
-          <div style={{ position:"absolute", width:700, height:700, borderRadius:"50%",
-            background:"radial-gradient(circle, rgba(56,189,248,0.22) 0%, transparent 70%)",
-            filter:"blur(60px)", top:"-20%", left:"-10%",
+          <div style={{ position:"absolute", width:900, height:900, borderRadius:"50%",
+            background:"radial-gradient(circle, rgba(56,189,248,0.32) 0%, rgba(56,189,248,0.06) 50%, transparent 70%)",
+            filter:"blur(50px)", top:"-30%", left:"-15%",
             animation:"blob1 16s ease-in-out infinite" }} />
-          <div style={{ position:"absolute", width:600, height:600, borderRadius:"50%",
-            background:"radial-gradient(circle, rgba(129,140,248,0.18) 0%, transparent 70%)",
-            filter:"blur(70px)", top:"10%", right:"-5%",
+          <div style={{ position:"absolute", width:800, height:800, borderRadius:"50%",
+            background:"radial-gradient(circle, rgba(129,140,248,0.28) 0%, rgba(129,140,248,0.05) 50%, transparent 70%)",
+            filter:"blur(60px)", top:"5%", right:"-10%",
             animation:"blob2 20s ease-in-out infinite" }} />
-          <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%",
-            background:"radial-gradient(circle, rgba(212,175,106,0.12) 0%, transparent 70%)",
-            filter:"blur(80px)", bottom:"-10%", left:"35%",
+          <div style={{ position:"absolute", width:700, height:700, borderRadius:"50%",
+            background:"radial-gradient(circle, rgba(212,175,106,0.2) 0%, rgba(212,175,106,0.04) 50%, transparent 70%)",
+            filter:"blur(70px)", bottom:"-5%", left:"30%",
             animation:"blob3 18s ease-in-out infinite" }} />
+          <div style={{ position:"absolute", width:500, height:500, borderRadius:"50%",
+            background:"radial-gradient(circle, rgba(74,222,128,0.12) 0%, transparent 65%)",
+            filter:"blur(90px)", top:"50%", right:"20%",
+            animation:"blob1 22s ease-in-out infinite reverse" }} />
         </div>
 
-        {/* Grid overlay */}
+        {/* Fine dot grid */}
         <div style={{ position:"absolute", inset:0, pointerEvents:"none",
-          backgroundImage:"linear-gradient(rgba(56,189,248,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.035) 1px, transparent 1px)",
-          backgroundSize:"70px 70px",
-          maskImage:"radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 75%)",
-          WebkitMaskImage:"radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 75%)" }} />
+          backgroundImage:"radial-gradient(rgba(56,189,248,0.15) 1px, transparent 1px)",
+          backgroundSize:"32px 32px",
+          maskImage:"radial-gradient(ellipse 80% 60% at 50% 40%, black 10%, transparent 80%)",
+          WebkitMaskImage:"radial-gradient(ellipse 80% 60% at 50% 40%, black 10%, transparent 80%)" }} />
 
-        {/* Subtle vignette */}
+        {/* Horizontal accent line */}
+        <div style={{ position:"absolute", top:"50%", left:0, right:0, height:1, pointerEvents:"none",
+          background:"linear-gradient(90deg, transparent 0%, rgba(56,189,248,0.12) 30%, rgba(56,189,248,0.12) 70%, transparent 100%)" }} />
+
+        {/* Bottom vignette */}
         <div style={{ position:"absolute", inset:0, pointerEvents:"none",
-          background:"radial-gradient(ellipse 100% 80% at 50% 0%, transparent 60%, rgba(3,5,13,0.9) 100%)" }} />
+          background:"linear-gradient(to bottom, transparent 60%, rgba(1,2,8,0.95) 100%)" }} />
 
         {/* Content */}
         <div className="hero-wrap">

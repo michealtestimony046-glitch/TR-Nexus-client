@@ -34,7 +34,7 @@ export const SERVICES = [
       },
       {
         id: "qa-insights",
-        name: "QA Insights",
+        name: "Launch Intelligence",
         hook: "Discover bugs, usability issues, and user friction before launch.",
         price: "$99",
         badge: "Popular",
@@ -73,7 +73,7 @@ export const SERVICES = [
           {
             heading: "What's included",
             bullets: [
-              "Everything in QA Insights",
+              "Everything in Launch Intelligence",
               "30 Real Testers",
               "Advanced QA Testing",
               "Regression Testing",
