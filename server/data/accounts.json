@@ -2,18 +2,10 @@
   {
     "name": "Mk",
     "email": "michealtestimony046@gmail.com",
-    "passwordHash": "1071799987faf963064abeb062b75ffe90e678dfe6e7f8cd7161b6834fbe11df",
+    "passwordHash": "8c7c99d0786bba4ee2e81354ba397193a491ca0a51eb141ade4f7e84d15c36ba",
     "verified": true,
     "createdAt": "2026-05-19T13:02:59.804Z",
     "sessions": [
-      {
-        "token": "4ca4dcc721a3a27913fc6074da4138b19c58d774cc77ef372f41d5c5dd043c06",
-        "expiresAt": 1780107817124
-      },
-      {
-        "token": "10ad1f44acfa2bd7d974c6265a51e0dc4b47cf6da60507bfd45cf8bd18b2aebe",
-        "expiresAt": 1780121414248
-      },
       {
         "token": "825e1b8550980c6efc62e4660c5f19f9b5f5fe1d2e251b4f6d5279fe0199a719",
         "expiresAt": 1780121785496
@@ -25,6 +17,35 @@
       {
         "token": "eb6e5645cb3879dbda5e7e898d250d8ab3a8c38ca3aeb77997b4686ebfb3728b",
         "expiresAt": 1780122831961
+      },
+      {
+        "token": "aa755c121a8d1f6d32f2300b38969ac0dc74a6e51a73e5bff38eeb0bd43403e3",
+        "expiresAt": 1780443796181
+      },
+      {
+        "token": "af799c4e8c1dcc8b740f400911a90bc98df9ba231e324e24d12b78d7e4756434",
+        "expiresAt": 1780446331731
+      }
+    ]
+  },
+  {
+    "name": "Test",
+    "email": "tragency@test.com",
+    "passwordHash": "8c7c99d0786bba4ee2e81354ba397193a491ca0a51eb141ade4f7e84d15c36ba",
+    "verified": true,
+    "createdAt": "2026-05-26T02:08:46.544Z",
+    "sessions": [
+      {
+        "token": "fb6465b6681a696837e6aba08bd515772fcc547ef8d3c5d28e4dd9718db7744b",
+        "expiresAt": 1780366126545
+      },
+      {
+        "token": "99e9ac7edeaae9011834b29351e4f4fe98ec091c955bb4ce92170f83512ecf99",
+        "expiresAt": 1780691751368
+      },
+      {
+        "token": "4c6d13626f0f663cee8de65b968c70c4b949a698aadb4fb8046c1a5083aa808c",
+        "expiresAt": 1780692461821
       }
     ]
   }

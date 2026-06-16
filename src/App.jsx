@@ -8,6 +8,7 @@ import Services from "./pages/Services.jsx";
 import Intake from "./pages/Intake.jsx";
 import Auth from "./pages/Auth.jsx";
 import Portal from "./pages/Portal.jsx";
+import Checkout from "./pages/Checkout.jsx";
 import Admin from "./pages/Admin.jsx";
 
 export default function App() {
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/services" element={<Services />} />
           <Route path="/intake" element={<Intake />} />
           <Route path="/portal" element={<Portal />} />
+          <Route path="/checkout/:projectId" element={<Checkout />} />
           <Route path="/login" element={<Auth />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="*" element={<Navigate to="/" replace />} />

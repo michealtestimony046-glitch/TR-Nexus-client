@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSession } from "../auth.js";
+import ChatModal from "../components/ChatModal.jsx";
 
 async function fetchProjects() {
   const s = getSession();
@@ -11,6 +12,16 @@ async function fetchProjects() {
   });
   const data = await res.json();
   return data.ok ? data.projects : [];
+}
+
+async function fetchMessages(projectId) {
+  const s = getSession();
+  if (!s) return [];
+  const res = await fetch(`/api/projects/${projectId}/messages`, {
+    headers: { Authorization: `Bearer ${s.token}` },
+  });
+  const data = await res.json();
+  return data.ok ? data.messages : [];
 }
 
 async function cancelProject(id) {
@@ -33,6 +44,20 @@ async function acceptDelivery(id) {
   return res.json();
 }
 
+async function submitFeedback(id, rating, comment) {
+  const s = getSession();
+  if (!s) return { ok: false };
+  const res = await fetch(`/api/projects/${id}/feedback`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${s.token}`,
+    },
+    body: JSON.stringify({ rating, comment }),
+  });
+  return res.json();
+}
+
 const DELIVERY = {
   "48-Hour App Health Scan": "48 hours",
   "Google Play Testing Compliance Service": "3–5 days",
@@ -45,34 +70,84 @@ const DELIVERY = {
 };
 
 const STATUS_CONFIG = {
-  active:                { label: "ACTIVE — Team Notified",     color: "#38bdf8", pulse: true  },
-  "in-analysis":         { label: "IN ANALYSIS",                color: "#a78bfa", pulse: true  },
-  "pending-delivery":    { label: "PENDING DELIVERY",           color: "#ffaa00", pulse: true  },
-  completed:             { label: "COMPLETED",                  color: "#4ade80", pulse: false },
-  "pending-cancellation":{ label: "PENDING CANCELLATION",       color: "#ffaa00", pulse: true  },
-  cancelled:             { label: "CANCELLED",                  color: "#6b7280", pulse: false },
+  active:                 { label: "ACTIVE — Team Notified",   color: "#38bdf8", pulse: true  },
+  "in-analysis":          { label: "IN ANALYSIS",              color: "#a78bfa", pulse: true  },
+  "pending-delivery":     { label: "PENDING DELIVERY",         color: "#ffaa00", pulse: true  },
+  completed:              { label: "COMPLETED",                color: "#4ade80", pulse: false },
+  "pending-cancellation": { label: "PENDING CANCELLATION",     color: "#ffaa00", pulse: true  },
+  cancelled:              { label: "CANCELLED",                color: "#6b7280", pulse: false },
 };
 
+// ── Timeline steps driven by BOTH elapsed time AND project status ──────────
 function timelineSteps(project) {
-  const t = new Date(project.submittedAt).getTime();
-  const now = Date.now();
-  const elapsed = now - t;
-  const status = project.status || "active";
+  const elapsed = Date.now() - new Date(project.submittedAt).getTime();
+  const status  = project.status || "active";
+  const payment = project.payment;
 
   const steps = [
-    { label: "Project initialized",            detail: "System accepted your intake submission.",   doneAfter: 0         },
-    { label: "Request received by T/R Agency", detail: "Our operations team has been notified.",    doneAfter: 5000      },
-    { label: "Team notification sent",          detail: "Alert fired to #admin-leads channel.",      doneAfter: 30000     },
-    { label: "Awaiting Discord session",        detail: "Open a ticket in the Command Center.",      doneAfter: 120000    },
-    { label: "Analysis begins",                 detail: "Team reviews your project in detail.",      doneAfter: Infinity  },
-    { label: "Report delivered",                detail: "Final deliverable sent to your account.",   doneAfter: Infinity  },
+    {
+      label: "Project initialized",
+      detail: "System accepted your intake submission.",
+      doneAfter: 0,
+      statusDone: ["active","in-analysis","pending-delivery","completed","pending-cancellation","cancelled"],
+    },
+    {
+      label: "Request received by T/R Agency",
+      detail: "Our operations team has been notified.",
+      doneAfter: 5000,
+      statusDone: ["active","in-analysis","pending-delivery","completed","pending-cancellation","cancelled"],
+    },
+    {
+      label: "Team notification sent",
+      detail: "Alert fired to #admin-leads channel.",
+      doneAfter: 30000,
+      statusDone: ["active","in-analysis","pending-delivery","completed","pending-cancellation","cancelled"],
+    },
+    {
+      label: "Awaiting project discussion",
+      detail: "Start chatting in the Project Discussion below.",
+      doneAfter: 120000,
+      statusDone: ["in-analysis","pending-delivery","completed"],
+    },
+    {
+      label: "Analysis in progress",
+      detail: "Team is actively reviewing your project.",
+      doneAfter: Infinity,
+      statusDone: ["in-analysis","pending-delivery","completed"],
+    },
+    {
+      label: "Payment confirmed",
+      detail: "Your payment has been verified by the team.",
+      doneAfter: Infinity,
+      statusDone: [],
+      // Special: done only when payment status is "paid"
+      paymentDone: true,
+    },
+    {
+      label: "Delivery pending your approval",
+      detail: "Review and accept the final deliverable.",
+      doneAfter: Infinity,
+      statusDone: ["completed"],
+    },
+    {
+      label: "Project completed",
+      detail: "Delivery accepted. Thank you for working with T/R Agency!",
+      doneAfter: Infinity,
+      statusDone: ["completed"],
+    },
   ];
 
-  return steps.map((s, i) => {
-    let done = elapsed >= s.doneAfter;
-    if (status === "in-analysis" && i <= 3) done = true;
-    if (status === "pending-delivery" && i <= 4) done = true;
-    if (status === "completed") done = true;
+  return steps.map((s) => {
+    let done = false;
+
+    if (s.paymentDone) {
+      // Only mark done if payment is actually confirmed
+      done = payment?.status === "paid";
+    } else {
+      // Done if status matches OR elapsed time passed
+      done = s.statusDone.includes(status) || elapsed >= s.doneAfter;
+    }
+
     return { ...s, done };
   });
 }
@@ -98,17 +173,43 @@ function StatusBadge({ status, large }) {
   );
 }
 
+// ── Payment badge shown on project card ──────────────────────────────────────
+function PaymentBadge({ payment }) {
+  if (!payment?.status) return null;
+
+  const map = {
+    pending:  { label: "⏳ Payment Pending", color: "#38bdf8" },
+    paid:     { label: "✅ Payment Success", color: "#4ade80" },
+    rejected: { label: "❌ Payment Rejected", color: "#ff6b6b" },
+  };
+  const s = map[payment.status];
+  if (!s) return null;
+
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center",
+      fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+      color: s.color, border: `1px solid ${s.color}33`,
+      background: `${s.color}11`, borderRadius: 4,
+      padding: "2px 8px", marginTop: 4,
+    }}>
+      {s.label}
+    </span>
+  );
+}
+
 function ProjectCard({ project, selected, onClick }) {
-  const cfg = STATUS_CONFIG[project.status] || STATUS_CONFIG.active;
   return (
     <button
       className={`portal-card${selected ? " selected" : ""}`}
       onClick={onClick}
-      style={project.status === "completed" ? { borderColor: "#4ade8033" } :
-             project.status === "cancelled"  ? { borderColor: "#6b728033", opacity: 0.7 } :
-             project.status === "pending-delivery" ? { borderColor: "#ffaa0033" } :
-             project.status === "pending-cancellation" ? { borderColor: "#ffaa0033" } :
-             project.status === "in-analysis" ? { borderColor: "#a78bfa33" } : {}}
+      style={
+        project.status === "completed"             ? { borderColor: "#4ade8033" } :
+        project.status === "cancelled"             ? { borderColor: "#6b728033", opacity: 0.7 } :
+        project.status === "pending-delivery"      ? { borderColor: "#ffaa0033" } :
+        project.status === "pending-cancellation"  ? { borderColor: "#ffaa0033" } :
+        project.status === "in-analysis"           ? { borderColor: "#a78bfa33" } : {}
+      }
     >
       <div className="portal-card-top">
         <span className="portal-project-id">{project.id}</span>
@@ -116,6 +217,12 @@ function ProjectCard({ project, selected, onClick }) {
       </div>
       <div className="portal-card-svc">{project.service}</div>
       <div className="portal-card-meta">{fmt(project.submittedAt)}</div>
+      {/* Payment badge on card */}
+      {project.payment?.status && (
+        <div style={{ marginTop: 6 }}>
+          <PaymentBadge payment={project.payment} />
+        </div>
+      )}
     </button>
   );
 }
@@ -204,9 +311,7 @@ function CancelModal({ project, onConfirm, onClose, cancelling }) {
         <div style={{ fontSize: 11, color: "#ff6b6b", letterSpacing: "0.1em", marginBottom: 8 }}>
           // Cancel Project
         </div>
-        <h3 style={{ margin: "0 0 8px", color: "#fff", fontSize: 18 }}>
-          Are you sure?
-        </h3>
+        <h3 style={{ margin: "0 0 8px", color: "#fff", fontSize: 18 }}>Are you sure?</h3>
         <p style={{ margin: "0 0 8px", color: "var(--muted, #666)", fontSize: 14 }}>
           You are about to cancel:
         </p>
@@ -220,27 +325,19 @@ function CancelModal({ project, onConfirm, onClose, cancelling }) {
           Our team will be notified immediately and must approve the cancellation.
         </p>
         <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={onClose}
-            disabled={cancelling}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 8,
-              border: "1px solid var(--border, #222)", background: "transparent",
-              color: "#fff", fontSize: 13, cursor: "pointer",
-            }}
-          >
+          <button onClick={onClose} disabled={cancelling} style={{
+            flex: 1, padding: "10px 0", borderRadius: 8,
+            border: "1px solid var(--border, #222)", background: "transparent",
+            color: "#fff", fontSize: 13, cursor: "pointer",
+          }}>
             Keep Project
           </button>
-          <button
-            onClick={onConfirm}
-            disabled={cancelling}
-            style={{
-              flex: 1, padding: "10px 0", borderRadius: 8,
-              border: "1px solid #ff444433", background: "#ff444411",
-              color: "#ff6b6b", fontSize: 13, fontWeight: 700, cursor: "pointer",
-              opacity: cancelling ? 0.6 : 1,
-            }}
-          >
+          <button onClick={onConfirm} disabled={cancelling} style={{
+            flex: 1, padding: "10px 0", borderRadius: 8,
+            border: "1px solid #ff444433", background: "#ff444411",
+            color: "#ff6b6b", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            opacity: cancelling ? 0.6 : 1,
+          }}>
             {cancelling ? "Requesting…" : "Request Cancellation"}
           </button>
         </div>
@@ -249,34 +346,172 @@ function CancelModal({ project, onConfirm, onClose, cancelling }) {
   );
 }
 
+function FeedbackModal({ project, onConfirm, onClose, submitting }) {
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "#000000cc",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 1000, padding: 24,
+    }}>
+      <div style={{
+        background: "var(--surface, #111)", border: "1px solid #ffaa0033",
+        borderRadius: 12, padding: 28, maxWidth: 420, width: "100%",
+      }}>
+        <div style={{ fontSize: 11, color: "#ffaa00", letterSpacing: "0.1em", marginBottom: 8 }}>
+          // Leave Feedback
+        </div>
+        <h3 style={{ margin: "0 0 8px", color: "#fff", fontSize: 18 }}>Rate your experience</h3>
+        <p style={{ margin: "0 0 20px", color: "var(--muted, #666)", fontSize: 14 }}>
+          How would you rate the service for {project.service}?
+        </p>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", marginBottom: 20 }}>
+          {[1,2,3,4,5].map((star) => (
+            <button
+              key={star}
+              onMouseEnter={() => setHoveredRating(star)}
+              onMouseLeave={() => setHoveredRating(0)}
+              onClick={() => setRating(star)}
+              style={{
+                background: "none", border: "none", cursor: "pointer", fontSize: 32,
+                opacity: star <= (hoveredRating || rating) ? 1 : 0.3,
+                transition: "opacity 0.2s",
+              }}
+            >
+              ⭐
+            </button>
+          ))}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ display: "block", fontSize: 12, color: "var(--muted, #666)", marginBottom: 8 }}>
+            Comment (optional)
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Tell us what you loved or what we can improve…"
+            rows={4}
+            style={{
+              width: "100%", padding: "10px 12px", borderRadius: 8,
+              border: "1px solid var(--border, #222)", background: "#ffffff08",
+              color: "#fff", fontSize: 13, fontFamily: "inherit", resize: "none",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onClose} disabled={submitting} style={{
+            flex: 1, padding: "10px 0", borderRadius: 8,
+            border: "1px solid var(--border, #222)", background: "transparent",
+            color: "#fff", fontSize: 13, cursor: "pointer",
+          }}>
+            Skip for now
+          </button>
+          <button
+            onClick={() => { if (rating > 0) onConfirm(rating, comment); }}
+            disabled={rating === 0 || submitting}
+            style={{
+              flex: 1, padding: "10px 0", borderRadius: 8,
+              border: "1px solid #ffaa0044", background: "#ffaa0011",
+              color: "#ffaa00", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              opacity: rating === 0 || submitting ? 0.5 : 1,
+            }}
+          >
+            {submitting ? "Submitting…" : "Submit Feedback"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Portal ───────────────────────────────────────────────────────────────
 export default function Portal() {
   const { session, logout } = useAuth();
-  const navigate = useNavigate();
-  const [projects, setProjects] = useState([]);
-  const [selected, setSelected] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [cancelTarget, setCancelTarget] = useState(null);
-  const [cancelling, setCancelling] = useState(false);
-  const [accepting, setAccepting] = useState(false);
+  const navigate   = useNavigate();
+  const location   = useLocation();
 
+  const [projects,          setProjects         ] = useState([]);
+  const [selected,          setSelected         ] = useState(0);
+  const [loading,           setLoading          ] = useState(true);
+  const [cancelTarget,      setCancelTarget     ] = useState(null);
+  const [cancelling,        setCancelling       ] = useState(false);
+  const [accepting,         setAccepting        ] = useState(false);
+  const [feedbackTarget,    setFeedbackTarget   ] = useState(null);
+  const [submittingFeedback,setSubmittingFeedback] = useState(false);
+  const [showChatModal,     setShowChatModal    ] = useState(false);
+  const [messages,          setMessages         ] = useState([]);
+  const [unreadCount,       setUnreadCount      ] = useState(0);
+
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session) { navigate("/login", { replace: true }); return; }
     fetchProjects().then((p) => { setProjects(p); setLoading(false); });
   }, [session]);
 
+  // ── Auto-open chat from Intake redirect ───────────────────────────────────
+  useEffect(() => {
+    if (!loading && location.state?.openChat && location.state?.projectId && projects.length > 0) {
+      const idx = projects.findIndex((p) => p.id === location.state.projectId);
+      if (idx !== -1) {
+        setSelected(idx);
+        setShowChatModal(true);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, [loading, projects, location.state]);
+
+  // ── Auto-refresh projects every 10 seconds ────────────────────────────────
+  useEffect(() => {
+    if (!session) return;
+
+    // Fetch immediately on mount too
+    fetchProjects().then((p) => setProjects(p));
+
+    const interval = setInterval(() => {
+      fetchProjects().then((p) => setProjects(p));
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [session]);
+
+  // ── Load messages when selected project changes ───────────────────────────
+  useEffect(() => {
+    if (!session || !projects[selected]) return;
+    fetchMessages(projects[selected].id).then((msgs) => {
+      setMessages(msgs);
+      setUnreadCount(msgs.filter((m) => !m.read && m.sender === "admin").length);
+    });
+  }, [selected, projects, session]);
+
+  // ── Auto-refresh messages every 3 seconds ────────────────────────────────
+  useEffect(() => {
+    if (!session || !projects[selected]) return;
+    const id = projects[selected].id;
+    const interval = setInterval(() => {
+      fetchMessages(id).then((msgs) => {
+        setMessages(msgs);
+        setUnreadCount(msgs.filter((m) => !m.read && m.sender === "admin").length);
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [selected, projects, session]);
+
   if (!session) return null;
 
   const active = projects[selected] || null;
 
+  // ── Handlers ─────────────────────────────────────────────────────────────
   async function handleCancel() {
     if (!cancelTarget) return;
     setCancelling(true);
     const res = await cancelProject(cancelTarget.id);
-    if (res.ok) {
-      setProjects((prev) =>
-        prev.map((p) => p.id === cancelTarget.id ? { ...p, status: "pending-cancellation" } : p)
-      );
-    }
+    if (res.ok) setProjects((prev) => prev.map((p) =>
+      p.id === cancelTarget.id ? { ...p, status: "pending-cancellation" } : p
+    ));
     setCancelling(false);
     setCancelTarget(null);
   }
@@ -285,19 +520,28 @@ export default function Portal() {
     if (!active) return;
     setAccepting(true);
     const res = await acceptDelivery(active.id);
-    if (res.ok) {
-      setProjects((prev) =>
-        prev.map((p) => p.id === active.id ? { ...p, status: "completed" } : p)
-      );
-    }
+    if (res.ok) setProjects((prev) => prev.map((p) =>
+      p.id === active.id ? { ...p, status: "completed" } : p
+    ));
     setAccepting(false);
+  }
+
+  async function handleFeedbackSubmit(rating, comment) {
+    if (!feedbackTarget) return;
+    setSubmittingFeedback(true);
+    const res = await submitFeedback(feedbackTarget.id, rating, comment);
+    if (res.ok) setProjects((prev) => prev.map((p) =>
+      p.id === feedbackTarget.id ? { ...p, feedback: { rating, comment } } : p
+    ));
+    setSubmittingFeedback(false);
+    setFeedbackTarget(null);
   }
 
   return (
     <section className="portal-page page-pad-top">
       <div className="container">
 
-        {/* Header */}
+        {/* ── Header ── */}
         <div className="portal-header">
           <div>
             <div className="section-tag">// Client Portal</div>
@@ -326,7 +570,7 @@ export default function Portal() {
               </svg>
             </div>
             <h3>No Active Projects</h3>
-            <p>You haven't submitted a project intake yet. Initialize your first project to get started.</p>
+            <p>You haven't submitted a project intake yet.</p>
             <Link className="btn btn-primary" to="/intake">
               Initialize First Project
               <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -340,9 +584,16 @@ export default function Portal() {
             <div className="portal-cards-label">
               <div className="portal-section-label">// Active Projects ({projects.length})</div>
             </div>
+
+            {/* Project cards */}
             <div className="portal-cards-row">
               {projects.map((p, i) => (
-                <ProjectCard key={p.id} project={p} selected={i === selected} onClick={() => setSelected(i)} />
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  selected={i === selected}
+                  onClick={() => setSelected(i)}
+                />
               ))}
             </div>
 
@@ -352,19 +603,74 @@ export default function Portal() {
                   <div>
                     <div className="portal-detail-id">{active.id}</div>
                     <div className="portal-detail-svc">{active.service}</div>
+                    {/* Payment badge in detail header */}
+                    {active.payment?.status && (
+                      <div style={{ marginTop: 8 }}>
+                        <PaymentBadge payment={active.payment} />
+                      </div>
+                    )}
                   </div>
                   <StatusBadge status={active.status} large />
                 </div>
 
                 <div className="portal-detail-grid">
                   <div className="portal-detail-left">
+                    {/* Timeline now reacts to status + payment */}
                     <Timeline project={active} />
                   </div>
                   <div className="portal-detail-right">
                     <StatsRow project={active} />
                     <TrustBlock />
 
-                    {/* Accept Delivery button — only show when pending-delivery */}
+                    {/* ── Checkout button ── */}
+                    {active.status === "in-analysis" && !active.payment && (
+                      <div style={{ marginTop: 20 }}>
+                        <button
+                          onClick={() => navigate(`/checkout/${active.id}`)}
+                          style={{
+                            width: "100%", padding: "10px 0", borderRadius: 8,
+                            border: "1px solid #38bdf844", background: "#38bdf811",
+                            color: "#38bdf8", fontSize: 12, fontWeight: 700,
+                            cursor: "pointer", letterSpacing: "0.05em",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "#38bdf822";
+                            e.currentTarget.style.transform = "translateY(-2px)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "#38bdf811";
+                            e.currentTarget.style.transform = "translateY(0)";
+                          }}
+                        >
+                          💰 Proceed to Checkout
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── Payment pending notice ── */}
+                    {active.payment?.status === "pending" && (
+                      <div style={{
+                        marginTop: 20, padding: "14px 16px", borderRadius: 8,
+                        border: "1px solid #38bdf844", background: "#38bdf811",
+                        color: "#38bdf8", fontSize: 13, textAlign: "center", fontWeight: 700,
+                      }}>
+                        ⏳ Payment submitted — awaiting confirmation
+                      </div>
+                    )}
+
+                    {/* ── Payment success notice ── */}
+                    {active.payment?.status === "paid" && (
+                      <div style={{
+                        marginTop: 20, padding: "14px 16px", borderRadius: 8,
+                        border: "1px solid #4ade8044", background: "#4ade8011",
+                        color: "#4ade80", fontSize: 13, textAlign: "center", fontWeight: 700,
+                      }}>
+                        ✅ Payment confirmed — your project is fully active!
+                      </div>
+                    )}
+
+                    {/* ── Accept Delivery button ── */}
                     {active.status === "pending-delivery" && (
                       <div style={{ marginTop: 20 }}>
                         <button
@@ -375,7 +681,7 @@ export default function Portal() {
                             border: "1px solid #4ade8044", background: "#4ade8011",
                             color: "#4ade80", fontSize: 12, fontWeight: 700,
                             cursor: "pointer", letterSpacing: "0.05em",
-                            opacity: accepting ? 0.6 : 1,
+                            opacity: accepting ? 0.6 : 1, transition: "all 0.2s",
                           }}
                         >
                           {accepting ? "Accepting…" : "✓ Accept Delivery"}
@@ -383,7 +689,35 @@ export default function Portal() {
                       </div>
                     )}
 
-                    {/* Cancel button — show if active, in-analysis, or pending-delivery */}
+                    {/* ── Feedback button ── */}
+                    {active.status === "pending-delivery" && !active.feedback && (
+                      <div style={{ marginTop: 12 }}>
+                        <button
+                          onClick={() => setFeedbackTarget(active)}
+                          style={{
+                            width: "100%", padding: "10px 0", borderRadius: 8,
+                            border: "1px solid #ffaa0044", background: "#ffaa0011",
+                            color: "#ffaa00", fontSize: 12, fontWeight: 700,
+                            cursor: "pointer", letterSpacing: "0.05em",
+                          }}
+                        >
+                          ⭐ Leave Feedback
+                        </button>
+                      </div>
+                    )}
+
+                    {/* ── Feedback already submitted ── */}
+                    {active.feedback && (
+                      <div style={{
+                        marginTop: 20, padding: "14px 16px", borderRadius: 8,
+                        border: "1px solid #ffaa0033", background: "#ffaa0011",
+                        color: "#ffaa00", fontSize: 13, textAlign: "center",
+                      }}>
+                        ✓ Feedback submitted — Thank you!
+                      </div>
+                    )}
+
+                    {/* ── Cancel button ── */}
                     {(active.status === "active" || active.status === "in-analysis" || active.status === "pending-delivery") && (
                       <div style={{ marginTop: 20 }}>
                         <button
@@ -400,6 +734,7 @@ export default function Portal() {
                       </div>
                     )}
 
+                    {/* ── Status messages ── */}
                     {active.status === "pending-cancellation" && (
                       <div style={{
                         marginTop: 20, padding: "14px 16px", borderRadius: 8,
@@ -409,7 +744,6 @@ export default function Portal() {
                         ⏳ Cancellation request pending admin approval
                       </div>
                     )}
-
                     {active.status === "completed" && (
                       <div style={{
                         marginTop: 20, padding: "14px 16px", borderRadius: 8,
@@ -419,7 +753,6 @@ export default function Portal() {
                         ✓ Project Completed — Thank you for working with T/R Agency
                       </div>
                     )}
-
                     {active.status === "cancelled" && (
                       <div style={{
                         marginTop: 20, padding: "14px 16px", borderRadius: 8,
@@ -449,9 +782,56 @@ export default function Portal() {
             </Link>
           </div>
         )}
-
       </div>
 
+      {/* ── Floating chat button (Portal-only, project-specific) ── */}
+      {active && (
+        <button
+          onClick={() => setShowChatModal(true)}
+          style={{
+            position: "fixed", bottom: 24, right: 24,
+            width: 56, height: 56, borderRadius: "50%",
+            background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+            color: "#000", border: "none", fontSize: 24,
+            cursor: "pointer", display: "flex",
+            alignItems: "center", justifyContent: "center",
+            boxShadow: "0 4px 12px #38bdf844", zIndex: 500,
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "scale(1.1)";
+            e.currentTarget.style.boxShadow = "0 6px 16px #38bdf855";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "scale(1)";
+            e.currentTarget.style.boxShadow = "0 4px 12px #38bdf844";
+          }}
+        >
+          💬
+          {unreadCount > 0 && (
+            <span style={{
+              position: "absolute", top: -4, right: -4,
+              background: "#ff4444", color: "#fff",
+              width: 22, height: 22, borderRadius: "50%",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 11, fontWeight: 700,
+              border: "2px solid #0a0a0a",
+            }}>
+              {unreadCount}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* ── Modals ── */}
+      {showChatModal && active && (
+        <ChatModal
+          projectId={active.id}
+          messages={messages}
+          setMessages={setMessages}
+          onClose={() => setShowChatModal(false)}
+        />
+      )}
       {cancelTarget && (
         <CancelModal
           project={cancelTarget}
@@ -460,7 +840,14 @@ export default function Portal() {
           cancelling={cancelling}
         />
       )}
-
+      {feedbackTarget && (
+        <FeedbackModal
+          project={feedbackTarget}
+          onConfirm={handleFeedbackSubmit}
+          onClose={() => setFeedbackTarget(null)}
+          submitting={submittingFeedback}
+        />
+      )}
     </section>
   );
 }

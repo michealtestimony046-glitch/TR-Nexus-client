@@ -1,0 +1,69 @@
+The Prompt:
+
+Build a high-converting, full-screen landing page for T/R Agency that replaces the current Home.jsx. The landing page should feel like a premium tech product (think Linear, Stripe, Vercel) — dark, immersive, no navbar on first load.
+
+Visual Structure (top to bottom):
+
+Section 1 — Full screen hero (100vh)
+
+	•	No navbar visible
+	•	Dark background #050505 with subtle animated gradient or noise texture
+	•	Large bold headline: “Your App. Fixed. Fast. Guaranteed.”
+	•	Subheadline: “Elite app rescue, QA testing and software engineering for global startups”
+	•	[  Get Started — Free Consult  →  ]
+       Already a client? Sign in
+	•	Small trust bar below buttons: “Trusted by founders across 🇺🇸 🇬🇧 🇳🇬”
+	•	Scroll indicator arrow at bottom
+
+Section 2 — What We Do (services snapshot)
+
+	•	4 cards: App Rescue, QA Testing, Technical Audit, Performance Upgrade
+	•	Each card has icon, title, one-line description
+	•	Subtle hover effects
+
+Section 3 — Social Proof numbers
+
+	•	40+ Happy Clients
+	•	98% Satisfaction Rate
+	•	< 48hrs First Response
+	•	3 Continents
+
+Section 4 — Reviews (40+ fake but realistic)
+
+	•	Masonry or grid layout
+	•	Each review card has:
+	•	Circular avatar with initials (real human photo headshot )
+	•	First name + country flag
+	•	Star rating (4 or 5 stars only)
+	•	Real-sounding comment about app rescue/QA/testing
+	•	Platform icon where they found T/R Agency (use real SVG icons for: Twitter/X, LinkedIn, Telegram, Discord, Replit, Reddit, ProductHunt)
+	•	Auto-scroll marquee (two rows scrolling opposite directions)
+
+Section 5 — How It Works
+
+	•	3 steps: Submit Intake → Get Analyzed → Delivery
+	•	Clean numbered steps with connecting line
+
+Section 6 — Final CTA
+
+	•	“Ready to rescue your app?”
+	•	Big button: “Start Now — It’s Free to Consult”
+	•	Below: padlock icon + “Secure · Private · No commitment”
+
+Section 7 — Footer
+
+	•	Logo left
+	•	Links: About, Services, Reviews, Portal
+	•	Support email
+	•	Social icons (Twitter, LinkedIn, Telegram)
+	•	Copyright
+
+Technical requirements:
+
+	•	Single file Home.jsx
+	•	All inline styles (no new CSS classes)
+	•	React only, no external libraries
+	•	Mobile responsive
+	•	Navbar from AppShell should be HIDDEN on this page only (pass a prop or use location in AppShell)
+	•	Smooth scroll between sections
+	•	Reviews marquee uses CSS animation only

@@ -128,15 +128,7 @@ function CalendlyModal({ onClose }) {
   );
 }
 
-function InitializedScreen({ projectId, onRedirect }) {
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    const t = setInterval(() => setCountdown((c) => c - 1), 1000);
-    const r = setTimeout(onRedirect, 5000);
-    return () => { clearInterval(t); clearTimeout(r); };
-  }, []);
-
+function InitializedScreen({ projectId, onDiscord, onPortal }) {
   return (
     <div className="initialized-screen">
       <div className="init-icon">
@@ -149,18 +141,27 @@ function InitializedScreen({ projectId, onRedirect }) {
       <p className="init-msg">
         Your project has been initialized — check your portal to see your full project details and timeline.
       </p>
-      <p className="init-redirect">
-        Redirecting to Discord Command Center in <strong>{countdown}s</strong>…
+      <p className="init-msg-sub">
+        Where would you like to go next?
       </p>
       <div className="init-steps">
         <div className="init-step done"><span>✓</span> Project record created</div>
         <div className="init-step done"><span>✓</span> Team notification sent</div>
         <div className="init-step done"><span>✓</span> Portal updated</div>
       </div>
-      <button className="btn btn-primary" onClick={onRedirect}>
-        Enter Command Center Now
-        <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-      </button>
+      <div className="init-button-group">
+        <button className="btn btn-primary" onClick={onPortal}>
+          💬 Chat in Portal
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+        <button className="btn btn-outline" onClick={onDiscord}>
+          🔗 Go to Command Center
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <p className="init-note">
+        You can access both chat and Discord anytime from your portal. Chat is available 24/7, or continue to Discord for real-time support.
+      </p>
     </div>
   );
 }
@@ -213,7 +214,11 @@ export default function Intake() {
     return (
       <section className="intake page-pad-top">
         <div className="container">
-          <InitializedScreen projectId={projectId} onRedirect={redirectToDiscord} />
+          <InitializedScreen 
+            projectId={projectId} 
+            onDiscord={redirectToDiscord}
+            onPortal={() => navigate("/portal", { state: { openChat: true, projectId: projectId } })}
+          />
         </div>
       </section>
     );
@@ -294,7 +299,7 @@ export default function Intake() {
               </li>
               <li>
                 <span className="step-n">3</span>
-                <div><strong>Discord</strong><em>Open a ticket in the Command Center.</em></div>
+                <div><strong>Choose Your Path</strong><em>Chat in portal or Discord Command Center.</em></div>
               </li>
             </ul>
             <Link to="/portal" className="back-link">← Back to portal</Link>
@@ -355,12 +360,8 @@ export default function Intake() {
             )}
 
             <div className="notice">
-              <strong>Action Required</strong>
-              After submission, you will be redirected to our Discord Command Center. You must manually{" "}
-              <strong style={{ display: "inline", textTransform: "none", letterSpacing: 0, color: "#fff" }}>
-                "Create a Ticket"
-              </strong>{" "}
-              inside the server to be attended to by our operations team.
+              <strong>What Happens Next?</strong>
+              After submission, choose to chat in your portal or join our Discord Command Center. Both keep you connected to our ops team.
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={submitting}>

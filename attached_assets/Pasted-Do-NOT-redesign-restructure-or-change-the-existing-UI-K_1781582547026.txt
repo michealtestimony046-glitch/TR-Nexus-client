@@ -1,0 +1,165 @@
+Do NOT redesign, restructure, or change the existing UI.
+
+Keep the current:
+
+* Layout
+* Card design
+* Colors
+* Styling
+* Animations
+* CTA buttons
+* Responsiveness
+* Section order
+* Card grid structure
+* Spacing and sizing
+
+Only update the content inside the service cards to match the new positioning below.
+
+The goal is to reposition T/R as a Mobile App Testing, QA, and Launch Readiness company.
+
+Replace the existing package names and descriptions with the following:
+
+CARD 1
+
+Title:
+Launch Validation
+
+Price:
+$49
+
+Description:
+Validate your app with real users before release.
+
+Features:
+
+* 12 Real Testers
+* Android or iOS Testing
+* 14-Day Testing Participation
+* Google Play Closed Testing Support
+* TestFlight Participation Support
+* Participation Verification
+* Basic Completion Report
+
+Best For:
+
+* Indie Developers
+* Early MVP Validation
+* Google Play Requirements
+
+⸻
+
+CARD 2
+
+Title:
+QA Insights
+
+Price:
+$99
+
+Description:
+Discover bugs, usability issues, and user friction before launch.
+
+Features:
+
+* Everything in Launch Validation
+* 20 Real Testers
+* Structured User Feedback
+* QA Review
+* Basic Bug Discovery Report
+* UX Friction Analysis
+* Launch Recommendations
+* Priority Support
+
+Best For:
+
+* MVP Validation
+* Startup Founders
+* User Feedback Collection
+
+⸻
+
+CARD 3
+
+Title:
+Launch Assurance
+
+Price:
+$179
+
+Description:
+Complete launch-readiness testing and quality assurance.
+
+Features:
+
+* Everything in QA Insights
+* 30 Real Testers
+* Advanced QA Testing
+* Regression Testing
+* Device Compatibility Testing
+* Detailed QA Report
+* Retesting After Fixes
+* User Journey Validation
+* Release Risk Assessment
+* Launch Consultation Call
+* Final Launch Readiness Report
+
+Best For:
+
+* Public App Launches
+* Revenue-Producing Apps
+* Teams Requiring Maximum Confidence
+
+⸻
+
+CUSTOM SOLUTIONS CARD
+
+Title:
+Custom QA Solutions
+
+Description:
+Need a tailored engagement?
+
+Services:
+
+* Dedicated QA Engineers
+* Automation Testing
+* Performance Testing
+* Security Testing
+* Accessibility Testing
+* Continuous QA Support
+* Enterprise QA Programs
+* MVP Development
+* Product Rescue Projects
+
+Pricing:
+Custom Quote
+
+⸻
+
+ADD-ONS CARD
+
+Title:
+Optional Add-Ons
+
+Services:
+
+* Additional 10 Testers — $25
+* Video Feedback Package — $39
+* Extended Testing Cycle (7 Days) — $29
+* Additional Retesting Round — $39
+* ASO Audit & Recommendations — $79
+* Performance Audit — Custom
+* Security Audit — Custom
+* Accessibility Audit — Custom
+
+⸻
+
+Important:
+
+The positioning throughout the section should emphasize:
+
+“Mobile App Testing, QA Validation, User Feedback, and Launch Readiness.”
+
+Do not market T/R primarily as a development agency.
+
+Maintain the current page structure and only replace service-card content and supporting copy where necessary.

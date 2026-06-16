@@ -51,12 +51,13 @@ externalPort = 3002
 [userenv.shared]
 VITE_DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1493454530321317891/U8yGmVKfXjLi2kx59mtvkOoA2ufBCa5a3WkMU0QZxDzIbVlBZuwk1CrrXX2e3kJZLpHY"
 RESEND_API_KEY = "re_MWoCYyMm_Lrr1zFREovXUazR6qAJ8jdFJ"
+NODE_ENV = "production"
 
 [nix]
 channel = "stable-25_05"
 
 [deployment]
-run = ["sh", "-c", "npm run build && npm run preview"]
+run = ["sh", "-c", "npm run build && npm run start"]
 deploymentTarget = "cloudrun"
 
 [postMerge]

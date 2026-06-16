@@ -8,7 +8,8 @@
     "dev:api": "node server/index.js",
     "dev:vite": "vite --host 0.0.0.0 --port 5000",
     "build": "vite build",
-    "preview": "NODE_ENV=production node server/index.js"
+    "start": "NODE_ENV=production node server/index.js",
+    "preview": "npm run build && npm run start"
   },
   "dependencies": {
     "concurrently": "^9.2.1",
@@ -26,7 +27,7 @@
   },
   "overrides": {
     "serialize-javascript": "^7.0.5",
-    "@babel/plugin-transform-modules-systemjs": "^7.29.4",
+    "@babel/plugin-transform-systemjs": "^7.29.4",
     "fast-uri": "^3.1.2",
     "brace-expansion": "^5.0.6"
   }
