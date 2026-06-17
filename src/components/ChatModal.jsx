@@ -35,8 +35,86 @@ function fmt(iso) {
     : d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Telegram-style background pattern ────────────────────────────────────────
-const BG_PATTERN = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%2338bdf8' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
+const IcoImage = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/>
+    <circle cx="8.5" cy="8.5" r="1.5"/>
+    <path d="M21 15l-5-5L5 21"/>
+  </svg>
+);
+
+const IcoFile = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/>
+    <line x1="16" y1="17" x2="8" y2="17"/>
+  </svg>
+);
+
+const IcoAudio = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18V5l12-2v13"/>
+    <circle cx="6" cy="18" r="3"/>
+    <circle cx="18" cy="16" r="3"/>
+  </svg>
+);
+
+const IcoMic = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" y1="19" x2="12" y2="22"/>
+    <line x1="8" y1="22" x2="16" y2="22"/>
+  </svg>
+);
+
+const IcoSend = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="22" y1="2" x2="11" y2="13"/>
+    <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+  </svg>
+);
+
+const IcoPin = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="21.44" y1="11.05" x2="9.5" y2="22.99"/>
+    <path d="M5 2L2 5l7.07 7.07-2.5 2.5L12 22l5.27-5.27 7.16 7.16 2.97-2.97-9.1-9.1 2.27-2.27z"/>
+  </svg>
+);
+
+const IcoChat = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+
+const IcoPhone = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
+  </svg>
+);
+
+const IcoBack = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6"/>
+  </svg>
+);
+
+const IcoTrash = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+    <path d="M10 11v6M14 11v6"/>
+    <path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+  </svg>
+);
+
+const IcoCheck = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+);
 
 export default function ChatModal({ projectId, messages, setMessages, onClose }) {
   const [text, setText]               = useState("");
@@ -52,12 +130,10 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   const recordTimer     = useRef(null);
   const session         = getSession();
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Mark admin messages read
   useEffect(() => {
     messages.forEach((msg) => {
       if (!msg.read && msg.sender === "admin") {
@@ -66,7 +142,6 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
     });
   }, []);
 
-  // ── Send text ─────────────────────────────────────────────────────────────
   async function handleSend() {
     if (!text.trim() || !session) return;
     setSending(true);
@@ -75,7 +150,6 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
     setSending(false);
   }
 
-  // ── Upload image ──────────────────────────────────────────────────────────
   async function handleImageUpload(e) {
     const file = e.target.files?.[0];
     if (!file || !session) return;
@@ -90,7 +164,6 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
     reader.readAsDataURL(file);
   }
 
-  // ── Upload audio file ─────────────────────────────────────────────────────
   async function handleAudioUpload(e) {
     const file = e.target.files?.[0];
     if (!file || !session) return;
@@ -105,7 +178,6 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
     reader.readAsDataURL(file);
   }
 
-  // ── Voice recording ───────────────────────────────────────────────────────
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -134,10 +206,7 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   }
 
   function stopRecording() {
-    if (mediaRecRef.current) {
-      mediaRecRef.current.stop();
-      mediaRecRef.current = null;
-    }
+    if (mediaRecRef.current) { mediaRecRef.current.stop(); mediaRecRef.current = null; }
     clearInterval(recordTimer.current);
     setRecording(false);
     setSending(true);
@@ -155,67 +224,85 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   }
 
   function handleScheduleCall() {
-    window.open("https://calendly.com/tragency-ops-proton/30min", "_blank");
+    window.open("https://discord.gg/G5cTHe87uQ", "_blank");
   }
 
   const fmtSecs = (s) => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
+
+  const glassPanel = {
+    background: "rgba(255,255,255,0.04)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(255,255,255,0.08)",
+  };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 2000,
       display: "flex", flexDirection: "column",
-      background: "#0a0f1a",
+      background: "rgba(4,8,18,0.65)",
+      backdropFilter: "blur(48px) saturate(180%)",
+      WebkitBackdropFilter: "blur(48px) saturate(180%)",
     }}>
 
-      {/* ── Tiled background (Telegram-style) ── */}
+      {/* Subtle dot grid background */}
       <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: BG_PATTERN,
-        backgroundSize: "60px 60px",
-        opacity: 0.6,
-        pointerEvents: "none",
+        position: "absolute", inset: 0, pointerEvents: "none",
+        backgroundImage: "radial-gradient(rgba(56,189,248,0.08) 1px, transparent 1px)",
+        backgroundSize: "28px 28px",
+      }} />
+
+      {/* Glow blobs */}
+      <div style={{
+        position: "absolute", width: 500, height: 500, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(56,189,248,0.08) 0%, transparent 70%)",
+        filter: "blur(60px)", top: "-20%", left: "-10%", pointerEvents: "none",
+      }} />
+      <div style={{
+        position: "absolute", width: 400, height: 400, borderRadius: "50%",
+        background: "radial-gradient(circle, rgba(129,140,248,0.07) 0%, transparent 70%)",
+        filter: "blur(60px)", bottom: "0%", right: "-10%", pointerEvents: "none",
       }} />
 
       {/* ── Header ── */}
       <div style={{
         position: "relative", zIndex: 2,
-        background: "rgba(10, 15, 26, 0.92)",
-        backdropFilter: "blur(20px)",
+        ...glassPanel,
+        borderLeft: "none", borderRight: "none", borderTop: "none",
         borderBottom: "1px solid rgba(56,189,248,0.12)",
         padding: "12px 16px",
         display: "flex", alignItems: "center", gap: 12,
       }}>
-        {/* Back / Close */}
         <button
           onClick={onClose}
           style={{
-            background: "rgba(255,255,255,0.08)", border: "none",
+            ...glassPanel,
             color: "#38bdf8", cursor: "pointer",
             width: 36, height: 36, borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 18, transition: "all 0.15s", flexShrink: 0,
+            transition: "all 0.15s", flexShrink: 0,
           }}
           onMouseEnter={e => e.currentTarget.style.background = "rgba(56,189,248,0.15)"}
-          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+          onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.04)"}
         >
-          ←
+          <IcoBack />
         </button>
 
-        {/* Avatar */}
         <div style={{
           width: 42, height: 42, borderRadius: "50%",
-          background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
+          background: "linear-gradient(135deg, rgba(56,189,248,0.3), rgba(14,165,233,0.2))",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(56,189,248,0.3)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 16, fontWeight: 900, color: "#000", flexShrink: 0,
-          boxShadow: "0 0 0 2px rgba(56,189,248,0.3)",
+          flexShrink: 0,
+          boxShadow: "0 0 16px rgba(56,189,248,0.2)",
         }}>
-          T
+          <IcoChat />
         </div>
 
-        {/* Title */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 15, fontWeight: 800, color: "#fff",
+            fontSize: 15, fontWeight: 800, color: "#f1f5f9",
             letterSpacing: "0.01em", whiteSpace: "nowrap",
             overflow: "hidden", textOverflow: "ellipsis",
           }}>
@@ -226,30 +313,26 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
           </div>
         </div>
 
-        {/* Call button */}
         <button
           onClick={handleScheduleCall}
-          title="Schedule a call"
+          title="Join Discord"
           style={{
-            background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)",
+            ...glassPanel,
             color: "#38bdf8", cursor: "pointer",
             width: 38, height: 38, borderRadius: "50%",
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "all 0.15s", flexShrink: 0,
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.background = "rgba(56,189,248,0.2)";
+            e.currentTarget.style.background = "rgba(56,189,248,0.15)";
             e.currentTarget.style.transform = "scale(1.06)";
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.background = "rgba(56,189,248,0.1)";
+            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
             e.currentTarget.style.transform = "scale(1)";
           }}
         >
-          {/* Phone SVG */}
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/>
-          </svg>
+          <IcoPhone />
         </button>
       </div>
 
@@ -268,13 +351,14 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
             textAlign: "center", gap: 8, padding: "60px 24px",
           }}>
             <div style={{
-              width: 56, height: 56, borderRadius: "50%",
-              background: "rgba(56,189,248,0.08)",
+              width: 60, height: 60, borderRadius: "50%",
+              background: "rgba(56,189,248,0.06)",
               border: "1px solid rgba(56,189,248,0.15)",
+              backdropFilter: "blur(10px)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 24, marginBottom: 4,
+              marginBottom: 4, color: "rgba(56,189,248,0.6)",
             }}>
-              💬
+              <IcoChat />
             </div>
             <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.5)" }}>
               No messages yet
@@ -298,11 +382,12 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
                 <div style={{
                   maxWidth: "78%",
                   background: isMe
-                    ? "linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%)"
-                    : "rgba(255,255,255,0.07)",
-                  backdropFilter: isMe ? "none" : "blur(12px)",
+                    ? "linear-gradient(135deg, rgba(56,189,248,0.85) 0%, rgba(14,165,233,0.8) 100%)"
+                    : "rgba(255,255,255,0.06)",
+                  backdropFilter: isMe ? "none" : "blur(16px)",
+                  WebkitBackdropFilter: isMe ? "none" : "blur(16px)",
                   border: isMe
-                    ? "none"
+                    ? "1px solid rgba(56,189,248,0.3)"
                     : "1px solid rgba(255,255,255,0.08)",
                   color: isMe ? "#000" : "#e8eaf0",
                   borderRadius: isMe
@@ -310,14 +395,11 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
                     : "18px 18px 18px 4px",
                   padding: msg.type === "image" ? "4px" : "10px 14px",
                   boxShadow: isMe
-                    ? "0 2px 12px rgba(56,189,248,0.25)"
-                    : "0 1px 4px rgba(0,0,0,0.3)",
+                    ? "0 4px 20px rgba(56,189,248,0.2)"
+                    : "0 2px 8px rgba(0,0,0,0.2)",
                 }}>
                   {showName && (
-                    <div style={{
-                      fontSize: 11, fontWeight: 700, color: "#38bdf8",
-                      marginBottom: 4,
-                    }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8", marginBottom: 4 }}>
                       T/R Agency
                     </div>
                   )}
@@ -330,53 +412,30 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
                     <img
                       src={msg.content}
                       alt="img"
-                      style={{
-                        maxWidth: "100%", borderRadius: 14,
-                        display: "block", maxHeight: 280,
-                      }}
+                      style={{ maxWidth: "100%", borderRadius: 14, display: "block", maxHeight: 280 }}
                     />
                   )}
-                  {msg.type === "voice" && (
+                  {(msg.type === "voice" || msg.type === "audio") && (
                     <div style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "2px 0", minWidth: 160,
                     }}>
                       <div style={{
                         width: 32, height: 32, borderRadius: "50%",
-                        background: isMe ? "rgba(0,0,0,0.15)" : "rgba(56,189,248,0.2)",
+                        background: isMe ? "rgba(0,0,0,0.15)" : "rgba(56,189,248,0.15)",
+                        border: "1px solid rgba(56,189,248,0.2)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
+                        flexShrink: 0, color: isMe ? "#000" : "#38bdf8",
                       }}>
-                        🎤
+                        <IcoAudio />
                       </div>
                       <audio
                         src={msg.content}
                         controls
-                        style={{
-                          height: 28, flex: 1,
-                          filter: isMe ? "invert(1)" : "none",
-                          opacity: 0.9,
-                        }}
+                        style={{ height: 28, flex: 1, filter: isMe ? "invert(1)" : "none", opacity: 0.9 }}
                       />
                     </div>
                   )}
-                  {msg.type === "audio" && (
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "2px 0", minWidth: 180,
-                    }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: "50%",
-                        background: isMe ? "rgba(0,0,0,0.15)" : "rgba(56,189,248,0.2)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        flexShrink: 0,
-                      }}>
-                        🎵
-                      </div>
-                      <audio src={msg.content} controls style={{ height: 28, flex: 1 }} />
-                    </div>
-                  )}
-                  {/* Timestamp + tick */}
                   {msg.type !== "image" && (
                     <div style={{
                       fontSize: 10, marginTop: 5,
@@ -393,11 +452,7 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
                     </div>
                   )}
                   {msg.type === "image" && (
-                    <div style={{
-                      fontSize: 10, padding: "3px 8px 4px",
-                      color: "rgba(255,255,255,0.7)",
-                      textAlign: "right",
-                    }}>
+                    <div style={{ fontSize: 10, padding: "3px 8px 4px", color: "rgba(255,255,255,0.7)", textAlign: "right" }}>
                       {fmt(msg.timestamp)}
                     </div>
                   )}
@@ -409,98 +464,60 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ── Attach sheet (slides up) ── */}
+      {/* ── Attach sheet ── */}
       {showAttach && (
         <div style={{
           position: "absolute", bottom: 72, left: 0, right: 0, zIndex: 10,
-          background: "rgba(10,15,26,0.97)",
-          backdropFilter: "blur(20px)",
+          background: "rgba(6,10,20,0.7)",
+          backdropFilter: "blur(30px)",
+          WebkitBackdropFilter: "blur(30px)",
           borderTop: "1px solid rgba(56,189,248,0.12)",
           padding: "20px 16px 24px",
         }}>
-          <div style={{
-            display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16,
-          }}>
-            {/* Image/Gallery */}
-            <label style={{ cursor: "pointer" }}>
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-              }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
+            {[
+              { label: "Photo", icon: <IcoImage />, accept: "image/*", handler: handleImageUpload, color: "rgba(167,139,250,0.15)", border: "rgba(167,139,250,0.25)", iconColor: "#a78bfa" },
+              { label: "File", icon: <IcoFile />, accept: "*/*", handler: handleImageUpload, color: "rgba(56,189,248,0.1)", border: "rgba(56,189,248,0.2)", iconColor: "#38bdf8" },
+              { label: "Audio", icon: <IcoAudio />, accept: "audio/*", handler: handleAudioUpload, color: "rgba(74,222,128,0.1)", border: "rgba(74,222,128,0.2)", iconColor: "#4ade80" },
+            ].map((item, i) => (
+              <label key={i} style={{ cursor: "pointer" }}>
                 <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: "linear-gradient(135deg, #a78bfa, #7c3aed)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 24, boxShadow: "0 4px 12px rgba(167,139,250,0.3)",
+                  display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
                 }}>
-                  🖼️
+                  <div style={{
+                    width: 60, height: 60, borderRadius: 18,
+                    background: item.color,
+                    border: `1px solid ${item.border}`,
+                    backdropFilter: "blur(10px)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: item.iconColor,
+                    transition: "all .2s",
+                  }}>
+                    {item.icon}
+                  </div>
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>
+                    {item.label}
+                  </span>
                 </div>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                  Gallery
-                </span>
-              </div>
-              <input
-                type="file" accept="image/*"
-                onChange={handleImageUpload}
-                style={{ display: "none" }}
-              />
-            </label>
-
-            {/* File */}
-            <label style={{ cursor: "pointer" }}>
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 24, boxShadow: "0 4px 12px rgba(56,189,248,0.3)",
-                }}>
-                  📁
-                </div>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                  File
-                </span>
-              </div>
-              <input
-                type="file" accept="*/*"
-                onChange={handleImageUpload}
-                style={{ display: "none" }}
-              />
-            </label>
-
-            {/* Audio */}
-            <label style={{ cursor: "pointer" }}>
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 8,
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 16,
-                  background: "linear-gradient(135deg, #4ade80, #22c55e)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 24, boxShadow: "0 4px 12px rgba(74,222,128,0.3)",
-                }}>
-                  🎵
-                </div>
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>
-                  Audio
-                </span>
-              </div>
-              <input
-                type="file" accept="audio/*"
-                onChange={handleAudioUpload}
-                style={{ display: "none" }}
-              />
-            </label>
+                <input
+                  type="file"
+                  accept={item.accept}
+                  onChange={item.handler}
+                  style={{ display: "none" }}
+                />
+              </label>
+            ))}
           </div>
 
-          {/* Close attach sheet */}
           <button
             onClick={() => setShowAttach(false)}
             style={{
               width: "100%", marginTop: 20, padding: "10px 0",
-              borderRadius: 10, border: "1px solid rgba(255,255,255,0.08)",
-              background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.5)",
+              borderRadius: 12,
+              background: "rgba(255,255,255,0.04)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              backdropFilter: "blur(10px)",
+              color: "rgba(255,255,255,0.5)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}
           >
@@ -512,39 +529,38 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
       {/* ── Input Bar ── */}
       <div style={{
         position: "relative", zIndex: 2,
-        background: "rgba(10,15,26,0.92)",
-        backdropFilter: "blur(20px)",
-        borderTop: "1px solid rgba(56,189,248,0.08)",
+        background: "rgba(255,255,255,0.03)",
+        backdropFilter: "blur(30px)",
+        WebkitBackdropFilter: "blur(30px)",
+        borderTop: "1px solid rgba(56,189,248,0.1)",
         padding: "10px 12px",
         paddingBottom: "max(10px, env(safe-area-inset-bottom))",
       }}>
-        {/* Recording state */}
         {recording ? (
-          <div style={{
-            display: "flex", alignItems: "center", gap: 12, padding: "4px 0",
-          }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 0" }}>
             <button
               onClick={cancelRecording}
               style={{
-                background: "none", border: "none",
-                color: "#ff6b6b", fontSize: 20, cursor: "pointer", padding: 4,
+                background: "rgba(255,100,100,0.1)", border: "1px solid rgba(255,100,100,0.2)",
+                backdropFilter: "blur(10px)", borderRadius: "50%",
+                width: 40, height: 40, color: "#ff6b6b", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
-              🗑️
+              <IcoTrash />
             </button>
             <div style={{
               flex: 1, display: "flex", alignItems: "center", gap: 8,
-              background: "rgba(255,255,255,0.06)", borderRadius: 24,
-              padding: "8px 16px",
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 24, padding: "8px 16px",
+              backdropFilter: "blur(10px)",
             }}>
               <span style={{
                 width: 8, height: 8, borderRadius: "50%",
                 background: "#ff4444", flexShrink: 0,
                 animation: "pulse-ring 1s infinite",
               }} />
-              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, flex: 1 }}>
-                Recording…
-              </span>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, flex: 1 }}>Recording…</span>
               <span style={{ color: "#38bdf8", fontSize: 13, fontWeight: 700, fontFamily: "monospace" }}>
                 {fmtSecs(recordSecs)}
               </span>
@@ -553,125 +569,92 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
               onClick={stopRecording}
               style={{
                 width: 44, height: 44, borderRadius: "50%",
-                background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
-                border: "none", color: "#000",
+                background: "rgba(56,189,248,0.2)", border: "1px solid rgba(56,189,248,0.35)",
+                backdropFilter: "blur(10px)",
+                color: "#38bdf8",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18, cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(56,189,248,0.4)",
+                cursor: "pointer",
               }}
             >
-              ✓
+              <IcoCheck />
             </button>
           </div>
         ) : (
           <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-            {/* Attach (pin) */}
             <button
               onClick={() => setShowAttach(v => !v)}
               style={{
                 width: 40, height: 40, borderRadius: "50%",
-                background: showAttach ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.06)",
+                background: showAttach ? "rgba(56,189,248,0.12)" : "rgba(255,255,255,0.05)",
                 border: `1px solid ${showAttach ? "rgba(56,189,248,0.3)" : "rgba(255,255,255,0.08)"}`,
+                backdropFilter: "blur(10px)",
                 color: showAttach ? "#38bdf8" : "rgba(255,255,255,0.5)",
                 cursor: "pointer", display: "flex", alignItems: "center",
                 justifyContent: "center", flexShrink: 0,
                 transition: "all 0.15s",
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = "rgba(56,189,248,0.12)"; }}
-              onMouseLeave={e => { e.currentTarget.style.background = showAttach ? "rgba(56,189,248,0.15)" : "rgba(255,255,255,0.06)"; }}
             >
-              {/* Pin SVG */}
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="21.44" y1="11.05" x2="9.5" y2="23" />
-                <path d="M20.12 5.54L18.46 3.88A2 2 0 0015.64 4L7.58 12.06l-3.13.87-.87 3.13 8.06-8.06a2 2 0 00.12-2.82L10.38 3.7a2 2 0 00-2.82.12L.88 11l3.13-.87.87-3.13" />
-              </svg>
+              <IcoPin />
             </button>
 
-            {/* Text input */}
             <div style={{
-              flex: 1, position: "relative",
-              background: "rgba(255,255,255,0.06)",
-              border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 24, overflow: "hidden",
-              transition: "border-color 0.15s",
+              flex: 1,
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)",
+              backdropFilter: "blur(10px)",
+              borderRadius: 24,
+              display: "flex", alignItems: "flex-end", gap: 0,
+              overflow: "hidden",
+              boxShadow: "inset 0 1px 0 rgba(255,255,255,0.04)",
             }}>
               <textarea
                 value={text}
-                onChange={(e) => setText(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.parentElement.style.borderColor = "rgba(56,189,248,0.3)";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.parentElement.style.borderColor = "rgba(255,255,255,0.08)";
-                }}
-                placeholder="Message…"
+                onChange={e => { setText(e.target.value); e.target.style.height = "auto"; e.target.style.height = Math.min(e.target.scrollHeight, 140) + "px"; }}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                placeholder="Message T/R Agency…"
                 rows={1}
-                disabled={sending}
                 style={{
-                  width: "100%", boxSizing: "border-box",
-                  padding: "10px 14px",
-                  background: "transparent", border: "none",
-                  color: "#fff", fontSize: 14, fontFamily: "inherit",
-                  resize: "none", outline: "none",
-                  maxHeight: 120, overflowY: "auto",
-                  lineHeight: 1.4,
+                  flex: 1, background: "transparent", border: "none", outline: "none",
+                  color: "#e2e8f0", fontSize: 14, lineHeight: 1.5,
+                  padding: "10px 14px", resize: "none", maxHeight: 140,
+                  fontFamily: "inherit",
                 }}
               />
             </div>
 
-            {/* Send OR Mic */}
             {text.trim() ? (
               <button
                 onClick={handleSend}
                 disabled={sending}
                 style={{
-                  width: 44, height: 44, borderRadius: "50%",
-                  background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
-                  border: "none", color: "#000",
+                  width: 40, height: 40, borderRadius: "50%",
+                  background: sending ? "rgba(56,189,248,0.15)" : "rgba(56,189,248,0.2)",
+                  border: "1px solid rgba(56,189,248,0.4)",
+                  backdropFilter: "blur(10px)",
+                  color: "#38bdf8",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: sending ? "not-allowed" : "pointer",
-                  opacity: sending ? 0.6 : 1,
-                  flexShrink: 0,
-                  boxShadow: "0 4px 12px rgba(56,189,248,0.35)",
+                  cursor: sending ? "not-allowed" : "pointer", flexShrink: 0,
                   transition: "all 0.15s",
+                  boxShadow: "0 0 12px rgba(56,189,248,0.15)",
                 }}
-                onMouseEnter={e => { if (!sending) e.currentTarget.style.transform = "scale(1.08)"; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
               >
-                {/* Send arrow SVG */}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3.478 2.405a.75.75 0 00-.926.94l2.432 7.905H13.5a.75.75 0 010 1.5H4.984l-2.432 7.905a.75.75 0 00.926.94 60.519 60.519 0 0018.445-8.986.75.75 0 000-1.218A60.517 60.517 0 003.478 2.405z"/>
-                </svg>
+                <IcoSend />
               </button>
             ) : (
               <button
                 onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-                onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
                 style={{
-                  width: 44, height: 44, borderRadius: "50%",
-                  background: recording
-                    ? "linear-gradient(135deg, #ff4444, #cc0000)"
-                    : "rgba(255,255,255,0.08)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  color: recording ? "#fff" : "rgba(255,255,255,0.6)",
+                  width: 40, height: 40, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  backdropFilter: "blur(10px)",
+                  color: "rgba(255,255,255,0.5)",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   cursor: "pointer", flexShrink: 0,
                   transition: "all 0.15s",
                 }}
               >
-                {/* Mic SVG */}
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 2a3 3 0 013 3v7a3 3 0 01-6 0V5a3 3 0 013-3z"/>
-                  <path d="M19 10v2a7 7 0 01-14 0v-2M12 19v3M8 22h8"/>
-                </svg>
+                <IcoMic />
               </button>
             )}
           </div>

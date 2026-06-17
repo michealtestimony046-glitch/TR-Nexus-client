@@ -59,15 +59,15 @@ button { font-family: inherit; cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 800; letter-spacing: 0.02em; color: var(--text); }
 .brand-mark {
   display: flex; align-items: center; justify-content: center;
-  background: #ffffff;
+  background: transparent;
   border-radius: 10px;
-  padding: 4px 7px;
-  height: 42px;
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 4px 12px rgba(0,0,0,0.4);
+  padding: 0;
+  height: 38px;
 }
 .brand-mark img {
-  height: 32px; width: auto;
+  height: 38px; width: auto;
   display: block;
+  border-radius: 8px;
 }
 .brand-text { font-size: 15px; }
 .brand-text .slash { color: var(--neon); }

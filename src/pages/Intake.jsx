@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { getSession } from "../auth.js";
 import { SERVICES } from "../services.js";
 
-const DISCORD_URL = "https://discord.gg/Ex7XWNqDtd";
+const DISCORD_URL = "https://discord.gg/G5cTHe87uQ";
 const CALENDLY_URL = "https://calendly.com/tragency-ops-proton/30min";
 const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL || "";
 const LEAD_BACKUP_KEY = "tr_agency_lead_backups";

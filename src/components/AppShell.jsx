@@ -244,18 +244,84 @@ export default function AppShell({ children }) {
         ))}
       </nav>
 
-      {/* ── Chat bubble — hidden on /portal (project chat handles it there) ── */}
+      {/* ── AI Assistant pill — visible to everyone ── */}
+      <a
+        href="https://t.me/EvelynVerabot"
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{
+          position: "fixed", bottom: session && !isPortal ? 140 : 84, right: 16,
+          display: "flex", alignItems: "center", gap: 10,
+          padding: "10px 18px",
+          background: "rgba(6,12,26,0.55)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          border: "1px solid rgba(56,189,248,0.2)",
+          borderRadius: 999,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(56,189,248,0.06), inset 0 1px 0 rgba(255,255,255,0.06)",
+          zIndex: 300,
+          textDecoration: "none",
+          transition: "all 0.2s",
+          cursor: "pointer",
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.background = "rgba(56,189,248,0.12)";
+          e.currentTarget.style.borderColor = "rgba(56,189,248,0.4)";
+          e.currentTarget.style.transform = "translateY(-2px)";
+          e.currentTarget.style.boxShadow = "0 12px 40px rgba(0,0,0,0.5), 0 0 20px rgba(56,189,248,0.1)";
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.background = "rgba(6,12,26,0.55)";
+          e.currentTarget.style.borderColor = "rgba(56,189,248,0.2)";
+          e.currentTarget.style.transform = "";
+          e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(56,189,248,0.06), inset 0 1px 0 rgba(255,255,255,0.06)";
+        }}
+      >
+        <div style={{
+          width: 28, height: 28, borderRadius: "50%",
+          background: "rgba(56,189,248,0.12)",
+          border: "1px solid rgba(56,189,248,0.25)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          flexShrink: 0,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.38-1 1.72V7h4a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-8a3 3 0 0 1 3-3h4V5.72A2 2 0 0 1 10 4a2 2 0 0 1 2-2z"/>
+            <circle cx="9" cy="14" r="1.5" fill="#38bdf8" stroke="none"/>
+            <circle cx="15" cy="14" r="1.5" fill="#38bdf8" stroke="none"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.01em", lineHeight: 1.2 }}>
+            Ask AI Assistant
+          </div>
+          <div style={{ fontSize: 10, color: "#38bdf8", fontFamily: "'JetBrains Mono',monospace", letterSpacing: "0.08em" }}>
+            24/7 available
+          </div>
+        </div>
+        <div style={{
+          width: 6, height: 6, borderRadius: "50%",
+          background: "#4ade80",
+          boxShadow: "0 0 6px #4ade80",
+          flexShrink: 0,
+          animation: "live-blink 2s ease-in-out infinite",
+        }} />
+      </a>
+
+      {/* ── Chat bubble (glass) — hidden on /portal ── */}
       {session && !isPortal && (
         <button
           onClick={handleChatOpen}
           style={{
-            position: "fixed", bottom: 80, right: 24,
+            position: "fixed", bottom: 84, right: 16,
             width: 48, height: 48, borderRadius: "50%",
-            background: "linear-gradient(135deg, #38bdf8, #0ea5e9)",
-            color: "#000", border: "none",
-            fontSize: 20, cursor: "pointer",
+            background: "rgba(6,12,26,0.55)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: "1px solid rgba(56,189,248,0.22)",
+            color: "#38bdf8", cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: "0 4px 12px #38bdf844", zIndex: 300,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)",
+            zIndex: 300,
             transition: "all 0.2s",
           }}
           title={
@@ -264,23 +330,27 @@ export default function AppShell({ children }) {
               : "Project Discussion"
           }
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.1)";
-            e.currentTarget.style.boxShadow = "0 6px 16px #38bdf855";
+            e.currentTarget.style.background = "rgba(56,189,248,0.12)";
+            e.currentTarget.style.borderColor = "rgba(56,189,248,0.4)";
+            e.currentTarget.style.transform = "scale(1.08)";
           }}
           onMouseLeave={(e) => {
+            e.currentTarget.style.background = "rgba(6,12,26,0.55)";
+            e.currentTarget.style.borderColor = "rgba(56,189,248,0.22)";
             e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow = "0 4px 12px #38bdf844";
           }}
         >
-          💬
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
           {totalUnread > 0 && (
             <span style={{
-              position: "absolute", top: -6, right: -6,
+              position: "absolute", top: -5, right: -5,
               background: "#ff4444", color: "#fff",
-              width: 20, height: 20, borderRadius: "50%",
+              width: 18, height: 18, borderRadius: "50%",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 11, fontWeight: 700,
-              border: "2px solid #0a0a0a",
+              fontSize: 10, fontWeight: 700,
+              border: "2px solid rgba(4,8,18,0.8)",
             }}>
               {totalUnread > 99 ? "99+" : totalUnread}
             </span>
