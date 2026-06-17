@@ -122,6 +122,7 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   const [showAttach, setShowAttach]   = useState(false);
   const [recording, setRecording]     = useState(false);
   const [recordSecs, setRecordSecs]   = useState(0);
+  const [showCalendly, setShowCalendly] = useState(false);
 
   const messagesEndRef  = useRef(null);
   const fileInputRef    = useRef(null);
@@ -224,7 +225,7 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   }
 
   function handleScheduleCall() {
-    window.open("https://discord.gg/G5cTHe87uQ", "_blank");
+    setShowCalendly(true);
   }
 
   const fmtSecs = (s) => `${Math.floor(s/60).toString().padStart(2,"0")}:${(s%60).toString().padStart(2,"0")}`;
@@ -660,6 +661,61 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
           </div>
         )}
       </div>
+
+      {/* ── Inline Calendly overlay ── */}
+      {showCalendly && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setShowCalendly(false); }}
+          style={{
+            position: "absolute", inset: 0, zIndex: 50,
+            background: "rgba(2,6,16,0.82)", backdropFilter: "blur(12px)",
+            display: "flex", flexDirection: "column",
+          }}
+        >
+          {/* Header */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "12px 16px",
+            background: "rgba(255,255,255,0.04)",
+            borderBottom: "1px solid rgba(56,189,248,0.12)",
+            backdropFilter: "blur(20px)",
+          }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#38bdf8",
+                textTransform: "uppercase", letterSpacing: "0.1em",
+                fontFamily: "'JetBrains Mono',monospace", marginBottom: 2 }}>
+                Book a Call
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: "#f1f5f9" }}>
+                Book an Operational Call
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCalendly(false)}
+              style={{
+                background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "50%", width: 36, height: 36, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: "#94a3b8",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          {/* iframe */}
+          <div style={{ flex: 1, overflow: "hidden", background: "#fff" }}>
+            <iframe
+              src="https://calendly.com/benedictadogbo13"
+              width="100%"
+              height="100%"
+              frameBorder="0"
+              title="Book an Operational Call"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

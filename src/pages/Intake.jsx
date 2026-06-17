@@ -5,7 +5,7 @@ import { getSession } from "../auth.js";
 import { SERVICES } from "../services.js";
 
 const DISCORD_URL = "https://discord.gg/G5cTHe87uQ";
-const CALENDLY_URL = "https://calendly.com/tragency-ops-proton/30min";
+const CALENDLY_URL = "https://calendly.com/benedictadogbo13";
 const WEBHOOK_URL = import.meta.env.VITE_DISCORD_WEBHOOK_URL || "";
 const LEAD_BACKUP_KEY = "tr_agency_lead_backups";
 
@@ -99,117 +99,42 @@ function CalendlyModal({ onClose }) {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  const options = [
-    {
-      icon: "💬",
-      label: "Discord — Command Center",
-      sub: "Fastest response · Usually < 1hr",
-      href: "https://discord.gg/Ex7XWNqDtd",
-      accent: "#5865f2",
-    },
-    {
-      icon: "✉️",
-      label: "Email Us",
-      sub: "tragency.ops@proton.me · Reply within 24hr",
-      href: "mailto:tragency.ops@proton.me",
-      accent: "#38bdf8",
-    },
-    {
-      icon: "🐦",
-      label: "X / Twitter",
-      sub: "@tragnecyops · DMs open",
-      href: "https://x.com/tragnecyops",
-      accent: "#e2e8f0",
-    },
-  ];
-
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       style={{
         position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(2,4,8,0.85)", backdropFilter: "blur(8px)",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "24px",
+        background: "rgba(2,4,8,0.88)", backdropFilter: "blur(10px)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
       }}
     >
-      <div style={{
-        background: "linear-gradient(160deg,#0c1426,#080d1a)",
-        border: "1px solid rgba(56,189,248,0.18)",
-        borderRadius: 24, padding: "32px 28px", width: "100%", maxWidth: 420,
-        boxShadow: "0 40px 80px -20px rgba(0,0,0,0.8), 0 0 0 1px rgba(56,189,248,0.06)",
-      }}>
-        {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28 }}>
+      <div className="calendly-panel">
+        <div className="calendly-panel-header">
           <div>
-            <div style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.2)",
-              borderRadius: 99, padding: "4px 12px", marginBottom: 12,
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#4ade80", display: "block" }} />
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#38bdf8", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "'JetBrains Mono',monospace" }}>Live Support</span>
-            </div>
-            <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#f1f5f9", letterSpacing: "-0.025em" }}>Book a Consult</h3>
-            <p style={{ margin: "6px 0 0", fontSize: 14, color: "#475569", lineHeight: 1.5 }}>
-              Reach us through any channel below — we respond fast.
-            </p>
+            <span className="drawer-badge">Book a Call</span>
+            <h3 style={{ margin: "6px 0 0", fontSize: 18, fontWeight: 800, color: "#f1f5f9" }}>
+              Book an Operational Call
+            </h3>
           </div>
           <button
+            className="drawer-close"
             onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-              borderRadius: 10, width: 36, height: 36, cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#64748b", flexShrink: 0, marginLeft: 12,
-            }}
+            aria-label="Close"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M18 6 6 18M6 6l12 12" />
             </svg>
           </button>
         </div>
-
-        {/* Contact options */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {options.map((o, i) => (
-            <a
-              key={i}
-              href={o.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "flex", alignItems: "center", gap: 14,
-                padding: "16px 18px", borderRadius: 14, textDecoration: "none",
-                background: "rgba(255,255,255,0.03)", border: `1px solid rgba(255,255,255,0.06)`,
-                transition: "all .2s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = `rgba(56,189,248,0.06)`;
-                e.currentTarget.style.borderColor = `rgba(56,189,248,0.2)`;
-                e.currentTarget.style.transform = "translateX(4px)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)";
-                e.currentTarget.style.transform = "";
-              }}
-            >
-              <span style={{ fontSize: 22, flexShrink: 0 }}>{o.icon}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: "#e2e8f0", marginBottom: 2 }}>{o.label}</div>
-                <div style={{ fontSize: 12, color: "#475569" }}>{o.sub}</div>
-              </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, opacity: 0.6 }}>
-                <path d="M5 12h14M13 5l7 7-7 7"/>
-              </svg>
-            </a>
-          ))}
+        <div className="calendly-frame-wrap">
+          <iframe
+            src={CALENDLY_URL}
+            width="100%"
+            height="100%"
+            frameBorder="0"
+            title="Book an Operational Call"
+          />
         </div>
-
-        <p style={{ margin: "20px 0 0", fontSize: 12, color: "#334155", textAlign: "center", lineHeight: 1.6 }}>
-          All channels monitored by our ops team · Average response: &lt;2 hours
-        </p>
       </div>
     </div>
   );
