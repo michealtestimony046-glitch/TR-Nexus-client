@@ -90,7 +90,9 @@ async function saveProject(payload, token) {
       body: JSON.stringify(payload),
     });
     return res.json();
-  } catch { return { ok: false }; }
+  } catch {
+    return { ok: false, error: "Network error. Please check your connection." };
+  }
 }
 
 function CalendlyModal({ onClose }) {
@@ -192,6 +194,7 @@ export default function Intake() {
   const [referral, setReferral] = useState("Official Website");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [initialized, setInitialized] = useState(false);
   const [projectId, setProjectId] = useState("");
   const [calendlyOpen, setCalendlyOpen] = useState(false);
@@ -240,8 +243,18 @@ export default function Intake() {
     e.preventDefault();
     if (submitting) return;
     setSubmitting(true);
+    setSubmitError("");
 
     const s = getSession();
+
+    // ── Guard: if session/token is missing, stop immediately ────────────────
+    if (!s?.token) {
+      setSubmitError("Your session has expired. Please sign in again.");
+      setSubmitting(false);
+      navigate(`/login?next=/intake${presetService ? `?service=${encodeURIComponent(presetService)}` : ""}`);
+      return;
+    }
+
     const price = getPriceForService(presetService);
 
     const payload = {
@@ -262,13 +275,32 @@ export default function Intake() {
 
     const [webhookResult, projectResult] = await Promise.all([
       fireWebhook(payload),
-      saveProject(payload, s?.token),
+      saveProject(payload, s.token),
     ]);
 
     if (!webhookResult.ok) console.error("[T/R Intake] Webhook failed:", webhookResult.reason);
 
-    const pid = projectResult?.project?.id || "TR-2026-XXXX";
-    setProjectId(pid);
+    // ── CRITICAL FIX: only show success if the project ACTUALLY saved ───────
+    // Previously this always ran regardless of success/failure, showing a
+    // fake "TR-2026-XXXX" ID even when nothing was saved to the database.
+    if (!projectResult?.ok || !projectResult?.project?.id) {
+      console.error("[T/R Intake] Project save failed:", projectResult?.error || "unknown error");
+
+      if (projectResult?.error === "Unauthorized.") {
+        setSubmitError("Your session has expired. Please sign in again.");
+        setSubmitting(false);
+        navigate(`/login?next=/intake${presetService ? `?service=${encodeURIComponent(presetService)}` : ""}`);
+        return;
+      }
+
+      setSubmitError(
+        projectResult?.error || "Something went wrong saving your project. Please try again."
+      );
+      setSubmitting(false);
+      return;
+    }
+
+    setProjectId(projectResult.project.id);
     setInitialized(true);
     setSubmitting(false);
   }
@@ -324,6 +356,16 @@ export default function Intake() {
                 {presetService ? `// ${presetService}` : "// General Consult"}
               </div>
             </div>
+
+            {submitError && (
+              <div style={{
+                background: "#ff444411", border: "1px solid #ff444433",
+                borderRadius: 8, padding: "10px 14px", color: "#ff6b6b",
+                fontSize: 13, marginBottom: 4,
+              }}>
+                {submitError}
+              </div>
+            )}
 
             <div className="field">
               <label>Full Name</label>
