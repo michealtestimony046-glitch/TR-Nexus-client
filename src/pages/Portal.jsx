@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getSession } from "../auth.js";
@@ -446,23 +446,42 @@ export default function Portal() {
   const [messages,          setMessages         ] = useState([]);
   const [unreadCount,       setUnreadCount      ] = useState(0);
 
+  // Guard so the auto-open-from-intake effect only ever fires ONCE per visit,
+  // even though `projects` gets a new array reference every 10s from polling.
+  const autoOpenedRef = useRef(false);
+
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!session) { navigate("/login", { replace: true }); return; }
     fetchProjects().then((p) => { setProjects(p); setLoading(false); });
   }, [session]);
 
-  // ── Auto-open chat from Intake redirect ───────────────────────────────────
+  // ── Auto-open chat from Intake redirect (FIXED — was looping every 10s) ──
+  // BUG: previously used window.history.replaceState() to "clear" the nav
+  // state, but that does NOT update React Router's internal location object.
+  // So location.state.openChat stayed truthy forever, and every time the
+  // 10-second project poll produced a new `projects` array reference, this
+  // effect re-ran and force-reopened the chat modal — even after the user
+  // had manually closed it. Fixed by using React Router's own navigate()
+  // to actually clear the state, plus a one-time ref guard as a safety net.
   useEffect(() => {
-    if (!loading && location.state?.openChat && location.state?.projectId && projects.length > 0) {
+    if (
+      !loading &&
+      !autoOpenedRef.current &&
+      location.state?.openChat &&
+      location.state?.projectId &&
+      projects.length > 0
+    ) {
       const idx = projects.findIndex((p) => p.id === location.state.projectId);
       if (idx !== -1) {
         setSelected(idx);
         setShowChatModal(true);
-        window.history.replaceState({}, document.title, window.location.pathname);
       }
+      autoOpenedRef.current = true;
+      // Properly clear the router's location state (not just the URL bar)
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [loading, projects, location.state]);
+  }, [loading, projects, location.state, location.pathname, navigate]);
 
   // ── Auto-refresh projects every 10 seconds ────────────────────────────────
   useEffect(() => {
@@ -689,8 +708,12 @@ export default function Portal() {
                       </div>
                     )}
 
-                    {/* ── Feedback button ── */}
-                    {active.status === "pending-delivery" && !active.feedback && (
+                    {/* ── Feedback button ──                                          */}
+                    {/* FIXED (Bug 5): previously only showed during "pending-delivery" */}
+                    {/* so once a client clicked "Accept Delivery" and status became     */}
+                    {/* "completed", the button vanished and they could never leave a    */}
+                    {/* review. Now it also shows for "completed" status.                */}
+                    {(active.status === "pending-delivery" || active.status === "completed") && !active.feedback && (
                       <div style={{ marginTop: 12 }}>
                         <button
                           onClick={() => setFeedbackTarget(active)}

@@ -180,18 +180,6 @@
     "referralSource": "Official Website",
     "promoterCode": null,
     "submittedAt": "2026-07-08T21:56:32.705Z",
-    "status": "active",
-    "messages": [
-      {
-        "id": "msg-1783547808835-d99f5514",
-        "sender": "client",
-        "senderName": "Test",
-        "type": "text",
-        "content": "I need app testing ",
-        "timestamp": "2026-07-08T21:56:48.835Z",
-        "read": false
-      }
-    ],
-    "updatedAt": "2026-07-08T21:56:48.836Z"
+    "status": "active"
   }
 ]

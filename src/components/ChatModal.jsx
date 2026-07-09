@@ -182,12 +182,40 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
   async function startRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const rec = new MediaRecorder(stream);
+
+      // ── FIX (Bug 2 — "voice can't play"): iOS Safari does NOT support the
+      // webm container. The previous code always hardcoded
+      // `new Blob(chunks, { type: "audio/webm" })` regardless of what the
+      // browser actually recorded. On iPhone, Safari silently records into a
+      // different container (typically audio/mp4), so the saved file's
+      // declared type (webm) didn't match its real contents — that mismatch
+      // is exactly why playback failed with a "can't play" error.
+      // Fix: detect a mimeType the current browser actually supports via
+      // MediaRecorder.isTypeSupported, and reuse the recorder's own reported
+      // mimeType (rec.mimeType) when building the final Blob so the label
+      // always matches the real audio format.
+      const preferredTypes = [
+        "audio/mp4",
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg",
+      ];
+      let mimeType = "";
+      for (const t of preferredTypes) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t)) {
+          mimeType = t;
+          break;
+        }
+      }
+
+      const rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      const actualMimeType = rec.mimeType || mimeType || "audio/webm";
+
       const chunks = [];
-      rec.ondataavailable = (e) => chunks.push(e.data);
+      rec.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
       rec.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(chunks, { type: "audio/webm" });
+        const blob = new Blob(chunks, { type: actualMimeType });
         const reader = new FileReader();
         reader.onload = async () => {
           const res = await sendMessage(projectId, "voice", reader.result, session.name);
@@ -433,6 +461,7 @@ export default function ChatModal({ projectId, messages, setMessages, onClose })
                       <audio
                         src={msg.content}
                         controls
+                        preload="metadata"
                         style={{ height: 28, flex: 1, filter: isMe ? "invert(1)" : "none", opacity: 0.9 }}
                       />
                     </div>
