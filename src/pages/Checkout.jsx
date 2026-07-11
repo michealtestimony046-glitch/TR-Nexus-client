@@ -2,6 +2,43 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSession } from "../auth.js";
 
+// ── Real-ish brand-colored logo marks for Upwork / Fiverr ────────────────────
+// (Simplified inline SVG marks in each platform's official brand color —
+// not exact pixel-for-pixel logo paths, but instantly recognizable alongside
+// the platform name label.)
+const UpworkLogo = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="10" fill="#14A800" />
+    <path
+      d="M32.5 20.2c-3.3 0-5.9 2.1-6.9 5.3-1-3.9-1.8-7.3-1.8-7.3h-4.4v9c0 2.2-1 3.9-3.2 3.9s-3.2-1.7-3.2-3.9v-9H8.6v9c0 4.5 2.9 7.9 7.6 7.9 3 0 5.1-1.4 6.3-3.6l.6 3.2h4l1.6-7.5c.5 3.9 3.3 6.5 6.9 6.5 4.1 0 7.4-3.3 7.4-7.7s-3.4-7.8-7.5-7.8Zm0 11.7c-2.2 0-3.9-1.8-3.9-3.9 0-2.2 1.7-4 3.9-4s3.9 1.8 3.9 4c0 2.1-1.7 3.9-3.9 3.9Z"
+      fill="#fff"
+    />
+  </svg>
+);
+
+const FiverrLogo = ({ size = 36 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+    <rect width="48" height="48" rx="10" fill="#1DBF73" />
+    <text
+      x="24" y="32"
+      textAnchor="middle"
+      fontFamily="Georgia, serif"
+      fontSize="24"
+      fontWeight="700"
+      fill="#fff"
+    >
+      fi
+    </text>
+    <circle cx="31" cy="12" r="2.6" fill="#fff" />
+  </svg>
+);
+
+const IcoShield = ({ size = 24, color = "#a78bfa" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8">
+    <path d="M12 2 4 5v6c0 5.5 3.4 9.7 8 11 4.6-1.3 8-5.5 8-11V5l-8-3z" />
+  </svg>
+);
+
 const PAYMENT_METHODS = {
   "lead-bank": {
     name: "Lead Bank (USD)",
@@ -9,8 +46,9 @@ const PAYMENT_METHODS = {
     icon: "💵",
     details: {
       bank: "Lead Bank",
-      accountHolder: "omolara temidayo yusuf",
-      accountNumber: "2121117288832",
+      accountHolder: "Omolara Temidayo Yusuf",
+      accountNumber: "212111728832",
+      accountType: "Checking",
       achRouting: "101019644",
       wireRouting: "101019644",
       address: "1801 Main St., Kansas City, MO 64108",
@@ -65,6 +103,15 @@ const PAYMENT_METHODS = {
       wallet: "DwZqUgRMMeSsqg7u3nYpcRXN2JCUFvKzjGSu4fkLTrijs",
       type: "crypto",
       warning: "SEND USDC (SOLANA) ONLY - NOT USDT, NOT ETHEREUM, NOT OTHER NETWORKS"
+    }
+  },
+  // ── NEW: Escrow (message-first flow) ─────────────────────────────────────
+  escrow: {
+    name: "Escrow (Upwork/Fiverr)",
+    currency: "N/A",
+    icon: "🛡️",
+    details: {
+      type: "escrow"
     }
   }
 };
@@ -377,24 +424,35 @@ export default function Checkout() {
                   setStep("payment");
                 }}
                 style={{
-                  background: "var(--surface, #111)", border: "1px solid var(--border, #222)",
+                  background: "var(--surface, #111)",
+                  border: key === "escrow" ? "1px solid #a78bfa33" : "1px solid var(--border, #222)",
                   borderRadius: 12, padding: 20, cursor: "pointer",
                   transition: "all 0.2s",
-                  color: "#fff"
+                  color: "#fff",
+                  position: "relative",
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "#38bdf8";
-                  e.currentTarget.style.background = "#38bdf811";
+                  const c = key === "escrow" ? "#a78bfa" : "#38bdf8";
+                  e.currentTarget.style.borderColor = c;
+                  e.currentTarget.style.background = `${c}11`;
                   e.currentTarget.style.transform = "translateY(-4px)";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "var(--border, #222)";
+                  e.currentTarget.style.borderColor = key === "escrow" ? "#a78bfa33" : "var(--border, #222)";
                   e.currentTarget.style.background = "var(--surface, #111)";
                   e.currentTarget.style.transform = "translateY(0)";
                 }}
               >
                 <div style={{ fontSize: 24, marginBottom: 8 }}>{method.icon}</div>
                 <div style={{ fontSize: 12, fontWeight: 600 }}>{method.name}</div>
+                {key === "escrow" && (
+                  <div style={{
+                    marginTop: 6, fontSize: 10, color: "#a78bfa",
+                    fontWeight: 700, letterSpacing: "0.04em",
+                  }}>
+                    Prefer using escrow?
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -407,6 +465,97 @@ export default function Checkout() {
   if (step === "payment") {
     const method = PAYMENT_METHODS[paymentMethod];
 
+    // ── ESCROW STEP — message-first flow, no direct links ──────────────────
+    if (method.details.type === "escrow") {
+      return (
+        <div style={{
+          minHeight: "100vh", background: "var(--bg, #0a0a0a)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          padding: 20
+        }}>
+          <div style={{
+            background: "var(--surface, #111)", border: "1px solid #a78bfa33",
+            borderRadius: 12, padding: 32, maxWidth: 460, width: "100%",
+          }}>
+            <button
+              onClick={() => setStep("method")}
+              style={{
+                background: "none", border: "none", color: "#a78bfa",
+                cursor: "pointer", fontSize: 14, marginBottom: 20, fontWeight: 600,
+              }}
+            >
+              ← Back
+            </button>
+
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 16,
+            }}>
+              <IcoShield size={22} />
+              <h2 style={{ color: "#fff", margin: 0, fontSize: 20, fontWeight: 800 }}>
+                Escrow Payment
+              </h2>
+            </div>
+
+            <p style={{ color: "var(--muted, #999)", fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
+              Prefer the security of a third-party escrow platform? We support secure
+              payments through either <strong style={{ color: "#fff" }}>Upwork</strong> or{" "}
+              <strong style={{ color: "#fff" }}>Fiverr</strong>.
+            </p>
+
+            {/* Platform logos */}
+            <div style={{
+              display: "flex", gap: 16, marginBottom: 24,
+              justifyContent: "center",
+            }}>
+              <div style={{ textAlign: "center" }}>
+                <UpworkLogo size={52} />
+                <div style={{ fontSize: 12, color: "#ccc", marginTop: 8, fontWeight: 700 }}>
+                  Upwork
+                </div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <FiverrLogo size={52} />
+                <div style={{ fontSize: 12, color: "#ccc", marginTop: 8, fontWeight: 700 }}>
+                  Fiverr
+                </div>
+              </div>
+            </div>
+
+            <div style={{
+              background: "#a78bfa0d", border: "1px solid #a78bfa33",
+              borderRadius: 10, padding: "16px 18px", marginBottom: 24,
+              fontSize: 13, color: "#c9baf9", lineHeight: 1.6,
+            }}>
+              These links are set up per-project, so message us in your Project
+              Discussion chat and we'll send you a secure Upwork or Fiverr link
+              for <strong>{project.service}</strong> right away.
+            </div>
+
+            <button
+              onClick={() => navigate("/portal", { state: { openChat: true, projectId } })}
+              style={{
+                width: "100%", padding: "12px 0", borderRadius: 8,
+                background: "linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%)",
+                color: "#000", fontWeight: 700, fontSize: 14, border: "none",
+                cursor: "pointer", transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 6px 20px #a78bfa44";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
+              💬 Message Us for Escrow Link
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // ── BANK / CRYPTO STEP (unchanged logic, now with correct bank data) ───
     return (
       <div style={{
         minHeight: "100vh", background: "var(--bg, #0a0a0a)",
@@ -468,6 +617,7 @@ export default function Checkout() {
                   <DetailRow label="Bank Name" value={method.details.bank} />
                   <DetailRow label="Account Holder" value={method.details.accountHolder} />
                   <DetailRow label="Account Number" value={method.details.accountNumber} />
+                  {method.details.accountType && <DetailRow label="Account Type" value={method.details.accountType} />}
                   {method.details.sortCode && <DetailRow label="Sort Code" value={method.details.sortCode} />}
                   {method.details.iban && <DetailRow label="IBAN" value={method.details.iban} />}
                   {method.details.achRouting && <DetailRow label="ACH Routing" value={method.details.achRouting} />}
