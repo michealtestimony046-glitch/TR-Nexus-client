@@ -10,7 +10,10 @@ import passportInstance from "../passport.js";
 
 const router = Router();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5001";
+// On split deploy (Render + Vercel) set FRONTEND_URL to the Vercel origin.
+// On same-origin deploy (Replit / Render serving frontend) leave it unset — 
+// relative paths like /login or /auth/callback will resolve correctly.
+const FRONTEND_URL = process.env.FRONTEND_URL || "";
 
 function genCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
