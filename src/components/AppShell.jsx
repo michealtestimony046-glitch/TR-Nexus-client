@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { getSession } from "../auth.js";
+import { getSession, apiBase } from "../auth.js";
 import InstallPrompt from "./InstallPrompt.jsx";
 import ChatModal from "./ChatModal.jsx";
 
@@ -73,7 +73,7 @@ async function fetchUnreadInfo() {
   if (!s) return { unreadCount: 0, firstUnreadProjectId: null, firstUnreadMessages: [] };
 
   try {
-    const res = await fetch("/api/projects", {
+    const res = await fetch(`${apiBase}/api/projects`, {
       headers: { Authorization: `Bearer ${s.token}` },
     });
     const data = await res.json();
@@ -86,7 +86,7 @@ async function fetchUnreadInfo() {
     let firstUnreadMessages = [];
 
     for (const project of data.projects) {
-      const msgRes = await fetch(`/api/projects/${project.id}/messages`, {
+      const msgRes = await fetch(`${apiBase}/api/projects/${project.id}/messages`, {
         headers: { Authorization: `Bearer ${s.token}` },
       });
       const msgData = await msgRes.json();
@@ -155,7 +155,7 @@ export default function AppShell({ children }) {
       // No unread messages — fetch first available project and open that
       try {
         const s = getSession();
-        const res = await fetch("/api/projects", {
+        const res = await fetch(`${apiBase}/api/projects`, {
           headers: { Authorization: `Bearer ${s.token}` },
         });
         const data = await res.json();
@@ -164,7 +164,7 @@ export default function AppShell({ children }) {
           const firstProject = data.projects[0];
 
           // Load messages for that project
-          const msgRes = await fetch(`/api/projects/${firstProject.id}/messages`, {
+          const msgRes = await fetch(`${apiBase}/api/projects/${firstProject.id}/messages`, {
             headers: { Authorization: `Bearer ${s.token}` },
           });
           const msgData = await msgRes.json();

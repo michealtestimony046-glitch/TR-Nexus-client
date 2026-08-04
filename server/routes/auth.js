@@ -6,12 +6,15 @@ import {
   checkRateLimit,
 } from "../store.js";
 import { sendVerificationEmail, sendResetEmail } from "../email.js";
+import passportInstance from "../passport.js";
 
 const router = Router();
 
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5001";
+
 function genCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
-// POST /api/auth/signup
+// ── POST /api/auth/signup ─────────────────────────────────────────────────────
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -32,7 +35,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-// POST /api/auth/verify
+// ── POST /api/auth/verify ─────────────────────────────────────────────────────
 router.post("/verify", async (req, res) => {
   try {
     const { email, code } = req.body;
@@ -52,7 +55,7 @@ router.post("/verify", async (req, res) => {
   }
 });
 
-// POST /api/auth/login
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -73,7 +76,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// POST /api/auth/forgot  — just verify the account exists, no code/email needed
+// ── POST /api/auth/forgot ─────────────────────────────────────────────────────
 router.post("/forgot", async (req, res) => {
   try {
     const { email } = req.body;
@@ -90,7 +93,7 @@ router.post("/forgot", async (req, res) => {
   }
 });
 
-// POST /api/auth/reset  — email + new password, no code required
+// ── POST /api/auth/reset ──────────────────────────────────────────────────────
 router.post("/reset", async (req, res) => {
   try {
     const { email, newPassword } = req.body;
@@ -108,5 +111,73 @@ router.post("/reset", async (req, res) => {
     return res.json({ ok: false, error: "Password reset failed." });
   }
 });
+
+// ── GitHub OAuth ──────────────────────────────────────────────────────────────
+router.get(
+  "/github",
+  (req, res, next) => {
+    if (!process.env.GITHUB_CLIENT_ID) {
+      return res.redirect(`${FRONTEND_URL}/login?error=GitHub+OAuth+not+configured`);
+    }
+    next();
+  },
+  passportInstance.authenticate("github", { scope: ["user:email"] })
+);
+
+router.get(
+  "/github/callback",
+  passportInstance.authenticate("github", {
+    failureRedirect: `${FRONTEND_URL}/login?error=github_oauth_failed`,
+  }),
+  (req, res) => {
+    try {
+      const { token, expiresAt } = createSession(req.user.email);
+      const params = new URLSearchParams({
+        token,
+        name: req.user.name,
+        email: req.user.email,
+        expiresAt: String(expiresAt),
+      });
+      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+    } catch (err) {
+      console.error("[github/callback]", err.message);
+      res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
+    }
+  }
+);
+
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+router.get(
+  "/google",
+  (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.redirect(`${FRONTEND_URL}/login?error=Google+OAuth+not+configured`);
+    }
+    next();
+  },
+  passportInstance.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get(
+  "/google/callback",
+  passportInstance.authenticate("google", {
+    failureRedirect: `${FRONTEND_URL}/login?error=google_oauth_failed`,
+  }),
+  (req, res) => {
+    try {
+      const { token, expiresAt } = createSession(req.user.email);
+      const params = new URLSearchParams({
+        token,
+        name: req.user.name,
+        email: req.user.email,
+        expiresAt: String(expiresAt),
+      });
+      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+    } catch (err) {
+      console.error("[google/callback]", err.message);
+      res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
+    }
+  }
+);
 
 export default router;

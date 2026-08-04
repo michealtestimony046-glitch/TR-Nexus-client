@@ -2,6 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// API_URL can be overridden in dev via .env (e.g. API_URL=http://localhost:3001)
+// On Vercel this proxy is never used — the frontend calls VITE_API_URL directly.
+const API_PROXY_TARGET = process.env.API_URL || 'http://localhost:3001';
+
 export default defineConfig({
   plugins: [
     react(),
@@ -47,7 +51,7 @@ export default defineConfig({
     hmr: { clientPort: 443 },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: API_PROXY_TARGET,
         changeOrigin: true,
       }
     }

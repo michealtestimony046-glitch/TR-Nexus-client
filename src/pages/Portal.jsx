@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { getSession } from "../auth.js";
+import { getSession, apiBase } from "../auth.js";
 import ChatModal from "../components/ChatModal.jsx";
 
 async function fetchProjects() {
   const s = getSession();
   if (!s) return [];
-  const res = await fetch("/api/projects", {
+  const res = await fetch(`${apiBase}/api/projects`, {
     headers: { Authorization: `Bearer ${s.token}` },
   });
   const data = await res.json();
@@ -17,7 +17,7 @@ async function fetchProjects() {
 async function fetchMessages(projectId) {
   const s = getSession();
   if (!s) return [];
-  const res = await fetch(`/api/projects/${projectId}/messages`, {
+  const res = await fetch(`${apiBase}/api/projects/${projectId}/messages`, {
     headers: { Authorization: `Bearer ${s.token}` },
   });
   const data = await res.json();
@@ -27,7 +27,7 @@ async function fetchMessages(projectId) {
 async function cancelProject(id) {
   const s = getSession();
   if (!s) return { ok: false };
-  const res = await fetch(`/api/projects/${id}/cancel`, {
+  const res = await fetch(`${apiBase}/api/projects/${id}/cancel`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${s.token}` },
   });
@@ -37,7 +37,7 @@ async function cancelProject(id) {
 async function acceptDelivery(id) {
   const s = getSession();
   if (!s) return { ok: false };
-  const res = await fetch(`/api/projects/${id}/accept-delivery`, {
+  const res = await fetch(`${apiBase}/api/projects/${id}/accept-delivery`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${s.token}` },
   });
@@ -47,7 +47,7 @@ async function acceptDelivery(id) {
 async function submitFeedback(id, rating, comment) {
   const s = getSession();
   if (!s) return { ok: false };
-  const res = await fetch(`/api/projects/${id}/feedback`, {
+  const res = await fetch(`${apiBase}/api/projects/${id}/feedback`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

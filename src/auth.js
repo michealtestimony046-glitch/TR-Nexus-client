@@ -1,5 +1,10 @@
 const SESSION_KEY = "tr_session";
 
+// Base URL for all API calls.
+// On Vercel (split deploy): set VITE_API_URL=https://your-render-app.onrender.com
+// On same-origin (Replit / Render serving frontend): leave empty — relative paths work.
+export const apiBase = import.meta.env.VITE_API_URL || "";
+
 export function getSession() {
   try {
     const s = JSON.parse(localStorage.getItem(SESSION_KEY));
@@ -16,7 +21,7 @@ export function saveSession(session) {
 export function logout() { localStorage.removeItem(SESSION_KEY); }
 
 async function post(path, body) {
-  const res = await fetch(path, {
+  const res = await fetch(`${apiBase}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),

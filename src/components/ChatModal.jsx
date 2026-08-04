@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
-import { getSession } from "../auth.js";
+import { getSession, apiBase } from "../auth.js";
 
 async function sendMessage(projectId, type, content, senderName) {
   const s = getSession();
   if (!s) return { ok: false };
-  const res = await fetch(`/api/projects/${projectId}/messages`, {
+  const res = await fetch(`${apiBase}/api/projects/${projectId}/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -18,7 +18,7 @@ async function sendMessage(projectId, type, content, senderName) {
 async function markMessageRead(projectId, msgId) {
   const s = getSession();
   if (!s) return { ok: false };
-  const res = await fetch(`/api/projects/${projectId}/messages/${msgId}/read`, {
+  const res = await fetch(`${apiBase}/api/projects/${projectId}/messages/${msgId}/read`, {
     method: "PATCH",
     headers: { Authorization: `Bearer ${s.token}` },
   });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getSession } from "../auth.js";
+import { getSession, apiBase } from "../auth.js";
 
 // ── Glassmorphism tokens (matches ChatModal.jsx) ──────────────────────────────
 const glassPanel = {
@@ -230,7 +230,7 @@ export default function Checkout() {
 
   async function fetchProjectInfo() {
     try {
-      const res = await fetch("/api/projects", {
+      const res = await fetch(`${apiBase}/api/projects`, {
         headers: { Authorization: `Bearer ${session.token}` }
       });
       const data = await res.json();
@@ -245,7 +245,7 @@ export default function Checkout() {
 
   async function checkPaymentStatus() {
     try {
-      const res = await fetch(`/api/projects/${projectId}`, {
+      const res = await fetch(`${apiBase}/api/projects/${projectId}`, {
         headers: { Authorization: `Bearer ${session.token}` }
       });
       const data = await res.json();
@@ -286,7 +286,7 @@ export default function Checkout() {
       reader.onload = async () => {
         try {
           const imageData = reader.result;
-          const res = await fetch(`/api/projects/${projectId}/payment-request`, {
+          const res = await fetch(`${apiBase}/api/projects/${projectId}/payment-request`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { getSession } from "../auth.js";
+import { getSession, apiBase } from "../auth.js";
 import { SERVICES } from "../services.js";
 
 const DISCORD_URL = "https://discord.gg/G5cTHe87uQ";
@@ -81,7 +81,7 @@ async function fireWebhook(payload) {
 
 async function saveProject(payload, token) {
   try {
-    const res = await fetch("/api/projects", {
+    const res = await fetch(`${apiBase}/api/projects`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

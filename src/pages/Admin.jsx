@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { apiBase } from "../auth.js";
 
 const ADMIN_KEY = "tr_admin_session";
 
@@ -91,7 +92,7 @@ function AdminLogin({ onLogin }) {
     e.preventDefault();
     setLoading(true); setError("");
     try {
-      const res = await fetch("/api/projects/all", { headers: { "x-admin-key": pw } });
+      const res = await fetch(`${apiBase}/api/projects/all`, { headers: { "x-admin-key": pw } });
       const data = await res.json();
       if (data.ok) { saveAdminKey(pw); onLogin(pw); }
       else setError("Invalid admin password.");
@@ -192,7 +193,7 @@ function MessagesPanel({ projects, adminPw }) {
   async function loadInitial(projectId) {
     setInitialLoad(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/messages`, {
+      const res = await fetch(`${apiBase}/api/projects/${projectId}/messages`, {
         headers: { "x-admin-key": adminPw },
       });
       const data = await res.json();
@@ -208,7 +209,7 @@ function MessagesPanel({ projects, adminPw }) {
   // ── Silent poll — only appends NEW messages, no flicker ──────────────────
   const pollMessages = useCallback(async (projectId) => {
     try {
-      const res = await fetch(`/api/projects/${projectId}/messages`, {
+      const res = await fetch(`${apiBase}/api/projects/${projectId}/messages`, {
         headers: { "x-admin-key": adminPw },
       });
       const data = await res.json();
@@ -245,7 +246,7 @@ function MessagesPanel({ projects, adminPw }) {
     if (!text.trim() || !selected || sending) return;
     setSending(true);
     try {
-      const res = await fetch(`/api/projects/${selected}/messages`, {
+      const res = await fetch(`${apiBase}/api/projects/${selected}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-admin-key": adminPw },
         body: JSON.stringify({
@@ -270,7 +271,7 @@ function MessagesPanel({ projects, adminPw }) {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const res = await fetch(`/api/projects/${selected}/messages`, {
+        const res = await fetch(`${apiBase}/api/projects/${selected}/messages`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "x-admin-key": adminPw },
           body: JSON.stringify({
@@ -553,7 +554,7 @@ export default function Admin() {
   async function loadProjects(pw) {
     setLoading(true);
     try {
-      const res = await fetch("/api/projects/all", { headers: { "x-admin-key": pw } });
+      const res = await fetch(`${apiBase}/api/projects/all`, { headers: { "x-admin-key": pw } });
       const data = await res.json();
       if (data.ok) setProjects(data.projects);
     } catch (e) { console.error(e); }
@@ -567,7 +568,7 @@ export default function Admin() {
     if (!adminPw) return;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/api/projects/all", { headers: { "x-admin-key": adminPw } });
+        const res = await fetch(`${apiBase}/api/projects/all`, { headers: { "x-admin-key": adminPw } });
         const data = await res.json();
         if (data.ok) {
           setProjects(prev => {
@@ -585,7 +586,7 @@ export default function Admin() {
   async function updateStatus(id, status) {
     setUpdating(id);
     try {
-      const res = await fetch(`/api/projects/${id}`, {
+      const res = await fetch(`${apiBase}/api/projects/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-key": adminPw },
         body: JSON.stringify({ status }),
@@ -599,7 +600,7 @@ export default function Admin() {
   async function confirmPayment(id) {
     setUpdating(id);
     try {
-      const res = await fetch(`/api/projects/${id}/confirm-payment`, {
+      const res = await fetch(`${apiBase}/api/projects/${id}/confirm-payment`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-key": adminPw },
       });
@@ -617,7 +618,7 @@ export default function Admin() {
   async function rejectPayment(id) {
     setUpdating(id);
     try {
-      const res = await fetch(`/api/projects/${id}/reject-payment`, {
+      const res = await fetch(`${apiBase}/api/projects/${id}/reject-payment`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "x-admin-key": adminPw },
       });
