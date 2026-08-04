@@ -1,0 +1,64 @@
+2026-08-04T21:39:10.890838167Z ==> Cloning from https://github.com/michealtestimony046-glitch/TR-Nexus-client
+2026-08-04T21:39:11.883524146Z ==> Checking out commit 004e8e64d2590415315581e67bc66bc78dcd29a5 in branch main
+2026-08-04T21:39:12.715679205Z ==> Requesting Node.js version 20.x
+2026-08-04T21:39:12.887623762Z ==> Using Node.js version 20.20.2 via /opt/render/project/src/package.json
+2026-08-04T21:39:12.887634234Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-08-04T21:39:12.887703389Z ==> Installing Node.js version 20.20.2...
+2026-08-04T21:39:13.569438142Z ==> Running build command 'npm install --omit=optional'...
+2026-08-04T21:40:24.35574422Z npm error Exit handler never called!
+2026-08-04T21:40:24.355764048Z npm error This is an error with npm itself. Please report this error at:
+2026-08-04T21:40:24.355765359Z npm error   <https://github.com/npm/cli/issues>
+2026-08-04T21:40:24.355948972Z npm error A complete log of this run can be found in: /opt/render/.cache/_logs/2026-08-04T21_39_13_615Z-debug-0.log
+2026-08-04T21:40:25.023253011Z ==> Uploading build...
+2026-08-04T21:40:28.033758637Z ==> Uploaded in 2.2s. Compression took 0.8s
+2026-08-04T21:40:28.03515895Z ==> Build successful 🎉
+2026-08-04T21:40:30.552332805Z ==> Deploying...
+2026-08-04T21:40:30.827867433Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-08-04T21:40:39.439485107Z ==> Running 'npm run start'
+2026-08-04T21:40:40.749431059Z 
+2026-08-04T21:40:40.74945057Z > tr-agency@1.0.0 start
+2026-08-04T21:40:40.74945411Z > NODE_ENV=production node server/index.js
+2026-08-04T21:40:40.74945724Z 
+2026-08-04T21:40:41.049087903Z node:internal/modules/esm/resolve:215
+2026-08-04T21:40:41.049102294Z   const resolvedOption = FSLegacyMainResolve(packageJsonUrlString, packageConfig.main, baseStringified);
+2026-08-04T21:40:41.049107344Z                          ^
+2026-08-04T21:40:41.049110154Z 
+2026-08-04T21:40:41.049113484Z Error: Cannot find package '/opt/render/project/src/node_modules/cors/index.js' imported from /opt/render/project/src/server/index.js
+2026-08-04T21:40:41.049116904Z     at legacyMainResolve (node:internal/modules/esm/resolve:215:26)
+2026-08-04T21:40:41.049120204Z     at packageResolve (node:internal/modules/esm/resolve:860:14)
+2026-08-04T21:40:41.049122854Z     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+2026-08-04T21:40:41.049125544Z     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+2026-08-04T21:40:41.049128315Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+2026-08-04T21:40:41.049131344Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+2026-08-04T21:40:41.049134355Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+2026-08-04T21:40:41.049138395Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+2026-08-04T21:40:41.049141695Z     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+2026-08-04T21:40:41.049144535Z   code: 'ERR_MODULE_NOT_FOUND'
+2026-08-04T21:40:41.049147705Z }
+2026-08-04T21:40:41.049150535Z 
+2026-08-04T21:40:41.049158505Z Node.js v20.20.2
+2026-08-04T21:40:42.776987927Z ==> Exited with status 1
+2026-08-04T21:40:42.782147428Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2026-08-04T21:40:46.763267414Z ==> Running 'npm run start'
+2026-08-04T21:40:47.759069298Z 
+2026-08-04T21:40:47.759097959Z > tr-agency@1.0.0 start
+2026-08-04T21:40:47.759102659Z > NODE_ENV=production node server/index.js
+2026-08-04T21:40:47.759106169Z 
+2026-08-04T21:40:48.059019709Z node:internal/modules/esm/resolve:215
+2026-08-04T21:40:48.05904343Z   const resolvedOption = FSLegacyMainResolve(packageJsonUrlString, packageConfig.main, baseStringified);
+2026-08-04T21:40:48.0590504Z                          ^
+2026-08-04T21:40:48.05905385Z 
+2026-08-04T21:40:48.05905827Z Error: Cannot find package '/opt/render/project/src/node_modules/cors/index.js' imported from /opt/render/project/src/server/index.js
+2026-08-04T21:40:48.059184153Z     at legacyMainResolve (node:internal/modules/esm/resolve:215:26)
+2026-08-04T21:40:48.059191383Z     at packageResolve (node:internal/modules/esm/resolve:860:14)
+2026-08-04T21:40:48.059195173Z     at moduleResolve (node:internal/modules/esm/resolve:946:18)
+2026-08-04T21:40:48.059198843Z     at defaultResolve (node:internal/modules/esm/resolve:1188:11)
+2026-08-04T21:40:48.059202803Z     at ModuleLoader.defaultResolve (node:internal/modules/esm/loader:708:12)
+2026-08-04T21:40:48.059206863Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:657:25)
+2026-08-04T21:40:48.059210824Z     at ModuleLoader.resolve (node:internal/modules/esm/loader:640:38)
+2026-08-04T21:40:48.059213924Z     at ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:264:38)
+2026-08-04T21:40:48.059216224Z     at ModuleJob._link (node:internal/modules/esm/module_job:168:49) {
+2026-08-04T21:40:48.059218584Z   code: 'ERR_MODULE_NOT_FOUND'
+2026-08-04T21:40:48.059221064Z }
+2026-08-04T21:40:48.059223344Z 
+2026-08-04T21:40:48.059225774Z Node.js v20.20.2
