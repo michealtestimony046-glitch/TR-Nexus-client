@@ -224,19 +224,69 @@ router.post("/forgot", async (req, res) => {
 // ── POST /api/auth/reset ──────────────────────────────────────────────────────
 router.post("/reset", async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
-    if (!email || !newPassword) return res.json({ ok: false, error: "All fields are required." });
-    if (newPassword.length < 8) return res.json({ ok: false, error: "Password must be at least 8 characters." });
-    if (!checkRateLimit(`reset:${email.toLowerCase()}`)) {
-      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
+    const { email, code, newPassword } = req.body;
+
+    if (!email || !code || !newPassword) {
+      return res.json({
+        ok: false,
+        error: "Email, verification code and new password are required.",
+      });
     }
+
+    if (newPassword.length < 8) {
+      return res.json({
+        ok: false,
+        error: "Password must be at least 8 characters.",
+      });
+    }
+
+    if (!checkRateLimit(`reset:${email.toLowerCase()}`)) {
+      return res.json({
+        ok: false,
+        error: "Too many attempts. Please wait a minute.",
+      });
+    }
+
     const account = findAccount(email);
-    if (!account) return res.json({ ok: false, error: "No account found for this email." });
-    updatePasswordHash(email, hashPassword(newPassword));
-    return res.json({ ok: true });
+
+    if (!account) {
+      return res.json({
+        ok: false,
+        error: "No account found for this email.",
+      });
+    }
+
+    const pending = consumePending(
+      "reset",
+      email,
+      code.trim()
+    );
+
+    if (!pending) {
+      return res.json({
+        ok: false,
+        error: "Invalid or expired reset code.",
+      });
+    }
+
+    updatePasswordHash(
+      email,
+      hashPassword(newPassword)
+    );
+
+    console.log(`[reset] Password successfully changed for ${email}`);
+
+    return res.json({
+      ok: true,
+    });
+
   } catch (err) {
-    console.error("[reset]", err.message);
-    return res.json({ ok: false, error: "Password reset failed." });
+    console.error("[reset]", err);
+
+    return res.json({
+      ok: false,
+      error: "Password reset failed.",
+    });
   }
 });
 
