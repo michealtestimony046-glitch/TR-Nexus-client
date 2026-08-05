@@ -452,9 +452,25 @@ export default function Portal() {
 
   // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!session) { navigate("/login", { replace: true }); return; }
-    fetchProjects().then((p) => { setProjects(p); setLoading(false); });
-  }, [session]);
+  const currentSession = session || getSession();
+
+  if (!currentSession) {
+    setLoading(false);
+    navigate("/login", { replace: true });
+    return;
+  }
+
+  fetchProjects()
+    .then((p) => {
+      setProjects(p);
+    })
+    .catch((err) => {
+      console.error("[Portal] Failed to fetch projects:", err);
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+}, [session, navigate]);
 
   // ── Auto-open chat from Intake redirect (FIXED — was looping every 10s) ──
   // BUG: previously used window.history.replaceState() to "clear" the nav
