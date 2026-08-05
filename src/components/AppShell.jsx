@@ -215,7 +215,7 @@ export default function AppShell({ children }) {
                     </svg>
                     Portal
                   </NavLink>
-                  <span className="nav-user-name">{session.name.split(" ")[0]}</span>
+<span className="nav-user-name">{session.name?.split(" ")[0] || "Account"}</span>
                   <button className="nav-logout" onClick={logout}>Sign Out</button>
                 </div>
               ) : (
