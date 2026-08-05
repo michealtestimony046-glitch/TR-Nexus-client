@@ -23,17 +23,23 @@ router.post("/signup", async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
-      return res.json({ ok: false, error: "All fields are required." });
+      return res.json({
+        ok: false,
+        error: "All fields are required.",
+      });
     }
 
     if (password.length < 8) {
-      return res.json({ ok: false, error: "Password must be at least 8 characters." });
+      return res.json({
+        ok: false,
+        error: "Password must be at least 8 characters.",
+      });
     }
 
     if (!checkRateLimit(`signup:${email.toLowerCase()}`)) {
       return res.json({
         ok: false,
-        error: "Too many attempts. Please wait a minute and try again.",
+        error: "Too many attempts. Please wait a minute.",
       });
     }
 
@@ -53,13 +59,13 @@ router.post("/signup", async (req, res) => {
       code,
     });
 
+    console.log(`[signup] Sending verification code to ${email}`);
+
     try {
       await sendVerificationEmail(email, code);
-      console.log(`[signup] Verification email sent to ${email}`);
+      console.log("[signup] Verification email sent successfully.");
     } catch (err) {
-      console.error("[signup] Failed sending verification email");
-      console.error(err);
-
+      console.error("[signup] Email send failed:", err);
       return res.json({
         ok: false,
         error: "Unable to send verification email.",
