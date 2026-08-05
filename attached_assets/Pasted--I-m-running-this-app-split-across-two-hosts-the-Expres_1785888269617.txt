@@ -1,0 +1,26 @@
+
+I’m running this app split across two hosts: the Express backend is deployed on Render at https://tr-agency-api.onrender.com, and the React/Vite frontend is deployed on Vercel at https://portal.trlabs.tech. They’re separate services communicating over HTTPS — not same-origin.
+Environment variables currently set:
+	•	Render: APP_URL=https://tr-agency-api.onrender.com, FRONTEND_URL=https://portal.trlabs.tech
+	•	Vercel: VITE_API_URL=https://tr-agency-api.onrender.com
+Problem 1: Signup/login shows “Connection error — please try again in a moment.”
+This suggests the frontend can’t successfully reach the backend. Please check:
+	•	Whether cors in server/index.js is correctly configured to allow https://portal.trlabs.tech as an origin, including credentials if cookies/sessions are used
+	•	Whether src/auth.js’s apiBase (from VITE_API_URL) is being used consistently in every fetch call, with no leftover relative paths or hardcoded old URLs
+	•	Whether the actual API endpoint being called exists and responds correctly when tested directly (e.g. curl https://tr-agency-api.onrender.com/api/auth/status or similar)
+Problem 2: Google OAuth error
+
+Error 400: invalid_request
+Request details: redirect_uri=https://tr-agency-api.onrender.com /api/auth/google/callback
+
+
+Note the apparent space in the redirect_uri between .com and /api — please check server/passport.js or wherever the Google strategy’s callbackURL is constructed, to confirm it’s building the URL correctly from APP_URL with no extra space, trailing slash, or string concatenation bug.
+Problem 3: GitHub OAuth error
+
+The redirect_uri is not associated with this application
+
+
+Please check the same callback URL construction for the GitHub strategy in server/passport.js, and confirm it matches exactly (protocol, domain, path) what should be registered in the GitHub OAuth App settings: https://tr-agency-api.onrender.com/api/auth/github/callback
+Please fix all three issues without changing unrelated functionality, and tell me explicitly what the final correct callback URLs should be so I can double-check they’re saved correctly in the Google Cloud Console and GitHub OAuth App settings.
+
+Pls fix what you can pls and let me know what I should fix in my end that you can’t 

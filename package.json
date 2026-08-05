@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "engines": {
-    "node": "20.x",
-    "npm": "10.8.2"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
   "scripts": {
     "dev": "concurrently \"node server/index.js\" \"vite --host 0.0.0.0 --port 5001\"",
@@ -20,13 +20,16 @@
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
+    "memorystore": "^1.6.8",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.14.2",
-    "resend": "^6.12.3",
+    "resend": "^6.12.3"
+  },
+  "optionalDependencies": {
     "sharp": "^0.34.5"
   },
   "devDependencies": {

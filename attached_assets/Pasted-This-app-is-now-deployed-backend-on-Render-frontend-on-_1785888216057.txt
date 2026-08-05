@@ -1,0 +1,12 @@
+This app is now deployed (backend on Render, frontend on Vercel) and working. I want to address several production-readiness items in one pass. Please handle all of the following:
+1. Session storage
+Currently using connect.session() with the default MemoryStore, which logs this warning: “MemoryStore is not designed for a production environment, as it will leak memory, and will not scale past a single process.” Please replace this with a persistent, production-safe session store. Recommend and implement whichever fits this stack best (e.g. connect-pg-simple if we add Postgres, or a lightweight file/SQLite-based store if we want to avoid adding a separate database service). Explain the tradeoff briefly before implementing.
+2. Database
+Check whether this app currently persists any data (users, sessions, payment/receipt records, chat messages) to a real database, or if anything is only stored in memory/local files that would be lost on server restart or redeploy. If there’s no real database yet, recommend a simple option that works well with Render (e.g. Render’s own free/low-cost Postgres, or an external free-tier option like Neon or Supabase) and set up the connection using an environment variable (DATABASE_URL), without hardcoding credentials.
+3. Node engines field
+package.json currently has "engines": { "node": "20.x", "npm": "10.8.2" }. Vercel warned that Node 20.x deployments will stop working after 2026-10-01 and wants Node 24.x. Render currently works fine on Node 20.x. Please update the engines field to safely support both platforms going forward (e.g. "node": "20.x || 24.x"), and flag if any current dependency would break on Node 24.
+4. package-lock.json vs yarn.lock
+We’re now using yarn install on both Render and Vercel due to an unrelated npm bug, but package-lock.json still exists in the repo alongside the new yarn.lock. Please remove package-lock.json to avoid the “mixing package managers” warning, and confirm yarn.lock is correctly committed.
+5. Security audit
+Run npm audit (or yarn’s equivalent) and tell me what the vulnerabilities are and whether any are worth fixing now vs. safe to defer. Don’t apply --force fixes without telling me what they’d change first.
+Please go through these one at a time, explain what you’re changing and why before making changes, and don’t modify unrelated working functionality (auth, payments, chat).

@@ -7,7 +7,8 @@ import { findAccount, createAccount, hashPassword } from "./store.js";
 const GitHubStrategy = passportGitHub.Strategy;
 const GoogleStrategy = passportGoogle.Strategy;
 
-const APP_URL = process.env.APP_URL || "http://localhost:3001";
+// Trim to prevent subtle bugs from accidental whitespace in the env var
+const APP_URL = (process.env.APP_URL || "http://localhost:3001").trim().replace(/\/$/, "");
 
 // We only use passport sessions briefly for OAuth state; real sessions live in accounts.json
 passport.serializeUser((user, done) => done(null, user));

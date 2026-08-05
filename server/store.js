@@ -4,7 +4,10 @@ import { fileURLToPath } from "url";
 import crypto from "crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "data");
+// DATA_DIR can be overridden via env var — point it at a Render persistent disk
+// (e.g. DATA_DIR=/data) so JSON files survive redeploys. Without this, all
+// accounts/projects/messages are wiped every time the service redeploys.
+const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
 const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
 const PENDING_FILE  = path.join(DATA_DIR, "pending.json");
 const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");

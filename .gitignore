@@ -5,3 +5,5 @@ dev-dist
 .env
 .env.local
 *.log
+# Use yarn.lock — remove this file from git to avoid "mixed package managers" warning
+package-lock.json
