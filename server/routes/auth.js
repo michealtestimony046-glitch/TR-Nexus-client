@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import {
-  findAccount, createAccount, hashPassword, updatePasswordHash, markAccountAsVerified,
+  findAccount, createAccount, hashPassword, updatePasswordHash,
   createSession, createVerifyPending, createResetPending, consumePending,
   checkRateLimit,
 } from "../store.js";
@@ -29,17 +29,9 @@ router.post("/signup", async (req, res) => {
     const existing = findAccount(email);
     if (existing) return res.json({ ok: false, error: "An account with this email already exists." });
 
-    const code = genCode();
-    createVerifyPending({ name, email, passwordHash: hashPassword(password), code });
-    try {
-      await sendVerificationEmail(email, code);
-    } catch (emailErr) {
-      console.error("[signup] Failed to send verification email:", emailErr.message);
-      // Optionally, you might want to delete the pending entry or mark it as failed
-      // However, for now, we'll let the user try to verify with the code that was supposed to be sent
-    }
-
-    return res.json({ ok: true, needsVerification: true });
+    createAccount({ name, email, passwordHash: hashPassword(password) });
+    const { token, expiresAt } = createSession(email);
+    return res.json({ ok: true, session: { name, email, token, expiresAt } });
   } catch (err) {
     console.error("[signup]", err.message);
     return res.json({ ok: false, error: "Signup failed. Please try again." });
@@ -57,7 +49,7 @@ router.post("/verify", async (req, res) => {
     const entry = consumePending("verify", email, code.trim());
     if (!entry) return res.json({ ok: false, error: "Incorrect or expired code. Please try again." });
 
-    markAccountAsVerified(entry.email);
+    createAccount({ name: entry.name, email: entry.email, passwordHash: entry.passwordHash });
     const { token, expiresAt } = createSession(entry.email);
     return res.json({ ok: true, session: { name: entry.name, email: entry.email, token, expiresAt } });
   } catch (err) {
@@ -97,11 +89,6 @@ router.post("/forgot", async (req, res) => {
     }
     const account = findAccount(email);
     if (!account) return res.json({ ok: false, error: "No operational account found for this email." });
-
-    const code = genCode();
-    createResetPending({ email, code });
-    await sendResetEmail(email, code);
-
     return res.json({ ok: true });
   } catch (err) {
     console.error("[forgot]", err.message);
@@ -112,17 +99,14 @@ router.post("/forgot", async (req, res) => {
 // ── POST /api/auth/reset ──────────────────────────────────────────────────────
 router.post("/reset", async (req, res) => {
   try {
-    const { email, code, newPassword } = req.body;
-    if (!email || !code || !newPassword) return res.json({ ok: false, error: "All fields are required." });
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) return res.json({ ok: false, error: "All fields are required." });
     if (newPassword.length < 8) return res.json({ ok: false, error: "Password must be at least 8 characters." });
     if (!checkRateLimit(`reset:${email.toLowerCase()}`)) {
       return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
     }
-    const entry = consumePending("reset", email, code.trim());
-    if (!entry) return res.json({ ok: false, error: "Incorrect or expired code. Please try again." });
-
     const account = findAccount(email);
-    if (!account) return res.json({ ok: false, error: "No account found for this email." }); // Should not happen if entry exists
+    if (!account) return res.json({ ok: false, error: "No account found for this email." });
     updatePasswordHash(email, hashPassword(newPassword));
     return res.json({ ok: true });
   } catch (err) {

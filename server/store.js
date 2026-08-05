@@ -105,23 +105,11 @@ export function createAccount({ name, email, passwordHash }) {
     name,
     email,
     passwordHash,
-    verified: false,
+    verified: true,
     createdAt: new Date().toISOString(),
     sessions: [],
   });
   saveAccounts(accounts);
-}
-
-export function markAccountAsVerified(email) {
-  const accounts = getAccounts();
-  const i = accounts.findIndex(
-    (a) => a.email.toLowerCase() === email.toLowerCase()
-  );
-  if (i !== -1) {
-    accounts[i].verified = true;
-    accounts[i].updatedAt = new Date().toISOString();
-    saveAccounts(accounts);
-  }
 }
 
 export function updatePasswordHash(email, passwordHash) {
