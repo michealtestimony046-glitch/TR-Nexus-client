@@ -21,20 +21,63 @@ function genCode() { return String(Math.floor(100000 + Math.random() * 900000));
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    if (!name || !email || !password) return res.json({ ok: false, error: "All fields are required." });
-    if (password.length < 8) return res.json({ ok: false, error: "Password must be at least 8 characters." });
-    if (!checkRateLimit(`signup:${email.toLowerCase()}`)) {
-      return res.json({ ok: false, error: "Too many attempts. Please wait a minute and try again." });
-    }
-    const existing = findAccount(email);
-    if (existing) return res.json({ ok: false, error: "An account with this email already exists." });
 
-    createAccount({ name, email, passwordHash: hashPassword(password) });
-    const { token, expiresAt } = createSession(email);
-    return res.json({ ok: true, session: { name, email, token, expiresAt } });
+    if (!name || !email || !password) {
+      return res.json({ ok: false, error: "All fields are required." });
+    }
+
+    if (password.length < 8) {
+      return res.json({ ok: false, error: "Password must be at least 8 characters." });
+    }
+
+    if (!checkRateLimit(`signup:${email.toLowerCase()}`)) {
+      return res.json({
+        ok: false,
+        error: "Too many attempts. Please wait a minute and try again.",
+      });
+    }
+
+    if (findAccount(email)) {
+      return res.json({
+        ok: false,
+        error: "An account with this email already exists.",
+      });
+    }
+
+    const code = genCode();
+
+    createVerifyPending({
+      name,
+      email,
+      passwordHash: hashPassword(password),
+      code,
+    });
+
+    try {
+      await sendVerificationEmail(email, code);
+      console.log(`[signup] Verification email sent to ${email}`);
+    } catch (err) {
+      console.error("[signup] Failed sending verification email");
+      console.error(err);
+
+      return res.json({
+        ok: false,
+        error: "Unable to send verification email.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      message: "Verification code sent.",
+    });
+
   } catch (err) {
-    console.error("[signup]", err.message);
-    return res.json({ ok: false, error: "Signup failed. Please try again." });
+    console.error("[signup]", err);
+
+    return res.json({
+      ok: false,
+      error: "Signup failed.",
+    });
   }
 });
 
@@ -42,19 +85,55 @@ router.post("/signup", async (req, res) => {
 router.post("/verify", async (req, res) => {
   try {
     const { email, code } = req.body;
-    if (!email || !code) return res.json({ ok: false, error: "Email and code are required." });
-    if (!checkRateLimit(`verify:${email.toLowerCase()}`)) {
-      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
-    }
-    const entry = consumePending("verify", email, code.trim());
-    if (!entry) return res.json({ ok: false, error: "Incorrect or expired code. Please try again." });
 
-    createAccount({ name: entry.name, email: entry.email, passwordHash: entry.passwordHash });
-    const { token, expiresAt } = createSession(entry.email);
-    return res.json({ ok: true, session: { name: entry.name, email: entry.email, token, expiresAt } });
+    if (!email || !code) {
+      return res.json({
+        ok: false,
+        error: "Email and verification code are required.",
+      });
+    }
+
+    if (!checkRateLimit(`verify:${email.toLowerCase()}`)) {
+      return res.json({
+        ok: false,
+        error: "Too many attempts. Please wait a minute.",
+      });
+    }
+
+    const pending = consumePending("verify", email, code.trim());
+
+    if (!pending) {
+      return res.json({
+        ok: false,
+        error: "Incorrect or expired verification code.",
+      });
+    }
+
+    createAccount({
+      name: pending.name,
+      email: pending.email,
+      passwordHash: pending.passwordHash,
+    });
+
+    const { token, expiresAt } = createSession(pending.email);
+
+    return res.json({
+      ok: true,
+      session: {
+        name: pending.name,
+        email: pending.email,
+        token,
+        expiresAt,
+      },
+    });
+
   } catch (err) {
-    console.error("[verify]", err.message);
-    return res.json({ ok: false, error: "Verification failed." });
+    console.error("[verify]", err);
+
+    return res.json({
+      ok: false,
+      error: "Verification failed.",
+    });
   }
 });
 
@@ -83,16 +162,62 @@ router.post("/login", async (req, res) => {
 router.post("/forgot", async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.json({ ok: false, error: "Email is required." });
-    if (!checkRateLimit(`forgot:${email.toLowerCase()}`)) {
-      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
+
+    if (!email) {
+      return res.json({
+        ok: false,
+        error: "Email is required.",
+      });
     }
+
+    if (!checkRateLimit(`forgot:${email.toLowerCase()}`)) {
+      return res.json({
+        ok: false,
+        error: "Too many attempts. Please wait a minute.",
+      });
+    }
+
     const account = findAccount(email);
-    if (!account) return res.json({ ok: false, error: "No operational account found for this email." });
-    return res.json({ ok: true });
+
+    if (!account) {
+      return res.json({
+        ok: false,
+        error: "No operational account found for this email.",
+      });
+    }
+
+    const code = genCode();
+
+    createResetPending({
+      email,
+      code,
+    });
+
+    try {
+      await sendResetEmail(email, code);
+      console.log(`[forgot] Password reset email sent to ${email}`);
+    } catch (err) {
+      console.error("[forgot] Failed sending reset email");
+      console.error(err);
+
+      return res.json({
+        ok: false,
+        error: "Unable to send password reset email.",
+      });
+    }
+
+    return res.json({
+      ok: true,
+      message: "Password reset code sent.",
+    });
+
   } catch (err) {
-    console.error("[forgot]", err.message);
-    return res.json({ ok: false, error: "Something went wrong. Please try again." });
+    console.error("[forgot]", err);
+
+    return res.json({
+      ok: false,
+      error: "Something went wrong. Please try again.",
+    });
   }
 });
 
