@@ -45,10 +45,17 @@ export default function AuthPage() {
         if (!tosChecked) { setError("You must agree to the Terms of Service and Privacy Policy."); setLoading(false); return; }
         if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
         if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-        const res = await signup(name, email, password);
-        if (!res.ok) { setError(res.error); setLoading(false); return; }
-        refresh();
-        navigate(next, { replace: true });
+const res = await signup(name, email, password);
+
+if (!res.ok) {
+  setError(res.error);
+  setLoading(false);
+  return;
+}
+
+setInfo("We've sent a verification code to your email.");
+setMode("verify");
+setCode("");
 
       } else if (mode === "verify") {
         const res = await verifyEmail(email, code);
@@ -128,7 +135,11 @@ const res = await resetPassword(email, code, password);
                 </div>
               )}
 
-              {(mode === "login" || mode === "signup" || mode === "forgot" || mode === "reset") && (
+{(mode === "login" ||
+  mode === "signup" ||
+  mode === "verify" ||
+  mode === "forgot" ||
+  mode === "reset") && (
                 <div className="field">
                   <label>Email</label>
                   <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" />
