@@ -64,7 +64,7 @@ export default function AuthPage() {
       } else if (mode === "reset") {
         if (password.length < 8) { setError("Password must be at least 8 characters."); setLoading(false); return; }
         if (password !== confirmPw) { setError("Passwords do not match."); setLoading(false); return; }
-        const res = await resetPassword(email, password);
+const res = await resetPassword(email, code, password);
         if (!res.ok) { setError(res.error); setLoading(false); return; }
         setDone(true);
       }
@@ -150,6 +150,29 @@ export default function AuthPage() {
                 </div>
               )}
 
+{mode === "reset" && (
+  <div className="field">
+    <label>Password Reset Code</label>
+    <input
+      type="text"
+      required
+      value={code}
+      onChange={(e) =>
+        setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+      }
+      placeholder="000000"
+      inputMode="numeric"
+      maxLength={6}
+      style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        letterSpacing: "0.25em",
+        fontSize: 22,
+        textAlign: "center",
+      }}
+      autoComplete="one-time-code"
+    />
+  </div>
+)}
 
               {(mode === "login" || mode === "signup" || mode === "reset") && (
                 <div className="field">
