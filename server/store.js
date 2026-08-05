@@ -131,20 +131,27 @@ export function createSession(email) {
   const token     = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + SESSION_TTL;
   const accounts  = getAccounts();
-  const i = accounts.findIndex(
-    (a) => a.email.toLowerCase() === email.toLowerCase()
-  );
-  if (i !== -1) {
-    if (!accounts[i].sessions) accounts[i].sessions = [];
-    // Keep last 5 active sessions, remove expired ones
-    accounts[i].sessions = accounts[i].sessions
-      .filter((s) => s.expiresAt > Date.now())
-      .slice(-5);
-    accounts[i].sessions.push({ token, expiresAt });
-    saveAccounts(accounts);
-  }
-  return { token, expiresAt };
+const account = accounts.find(
+    a => a.email.toLowerCase() === email.toLowerCase()
+);
+
+if (!account) {
+    throw new Error(`Account not found: ${email}`);
 }
+
+account.sessions ??= [];
+
+account.sessions.push({
+    token,
+    expiresAt
+});
+
+saveAccounts();
+
+return {
+    token,
+    expiresAt
+};
 
 export function validateSession(token) {
   if (!token) return null;
