@@ -125,43 +125,55 @@ export function updatePasswordHash(email, passwordHash) {
 }
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
-const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days (was 7)
+const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export function createSession(email) {
-  const token     = crypto.randomBytes(32).toString("hex");
+  const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + SESSION_TTL;
-  const accounts  = getAccounts();
-const account = accounts.find(
-    a => a.email.toLowerCase() === email.toLowerCase()
-);
 
-if (!account) {
+  const accounts = getAccounts();
+
+  const account = accounts.find(
+    (a) => a.email.toLowerCase() === email.toLowerCase()
+  );
+
+  if (!account) {
     throw new Error(`Account not found: ${email}`);
+  }
+
+  account.sessions ??= [];
+
+  account.sessions.push({
+    token,
+    expiresAt,
+  });
+
+  saveAccounts(accounts);
+
+  return {
+    token,
+    expiresAt,
+  };
 }
-
-account.sessions ??= [];
-
-account.sessions.push({
-    token,
-    expiresAt
-});
-
-saveAccounts();
-
-return {
-    token,
-    expiresAt
-};
 
 export function validateSession(token) {
   if (!token) return null;
+
   const accounts = getAccounts();
+
   for (const account of accounts) {
     const session = (account.sessions || []).find(
       (s) => s.token === token && s.expiresAt > Date.now()
     );
-    if (session) return { name: account.name, email: account.email };
+
+    if (session) {
+      return {
+        name: account.name,
+        email: account.email,
+      };
+    }
   }
+
   return null;
 }
 
