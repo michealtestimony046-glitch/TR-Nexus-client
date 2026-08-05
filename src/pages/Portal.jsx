@@ -535,7 +535,10 @@ export default function Portal() {
     return () => clearInterval(interval);
   }, [selected, projects, session]);
 
-  if (!session) return null;
+if (!session) {
+    navigate("/login", { replace: true });
+    return null;
+}
 
   const active = projects[selected] || null;
 
