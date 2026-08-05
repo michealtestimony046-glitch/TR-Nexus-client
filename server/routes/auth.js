@@ -339,36 +339,45 @@ router.get(
     }
     next();
   },
-  passportInstance.authenticate("google", { scope: ["profile", "email"] })
+  passportInstance.authenticate("google", {
+    scope: ["profile", "email"],
+  })
 );
 
-import {
-  findAccountByEmail,
-  createAccount,
-  createSession
-} from "../store.js";
+router.get(
+  "/google/callback",
+  passportInstance.authenticate("google", {
+    failureRedirect: `${FRONTEND_URL}/login?error=google_oauth_failed`,
+  }),
+  (req, res) => {
+    try {
+      let account = findAccount(req.user.email);
 
-...
+      if (!account) {
+        createAccount({
+          name: req.user.name,
+          email: req.user.email,
+          passwordHash: null,
+        });
 
-(req, res) => {
+        account = findAccount(req.user.email);
+      }
 
-  let account = findAccountByEmail(req.user.email);
+      const { token, expiresAt } = createSession(account.email);
 
-  if (!account) {
-    account = createAccount({
-      name: req.user.name,
-      email: req.user.email,
-      passwordHash: null,
-      verified: true,
-      provider: req.user.provider,
-    });
+      const params = new URLSearchParams({
+        token,
+        name: account.name,
+        email: account.email,
+        expiresAt: String(expiresAt),
+      });
+
+      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+    } catch (err) {
+      console.error("[google/callback]", err);
+      res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
+    }
   }
-
-  const { token, expiresAt } = createSession(account.email);
-
-  res.redirect(
-    `${CLIENT_URL}/auth/callback?token=${token}&expiresAt=${expiresAt}`
-  );
-}
+);
 
 export default router;
