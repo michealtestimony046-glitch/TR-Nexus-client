@@ -15,27 +15,41 @@ export default function AuthCallback() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    console.log("AuthCallback: useEffect triggered");
     const token     = params.get("token");
+    console.log("AuthCallback: token", token);
     const name      = params.get("name");
+    console.log("AuthCallback: name", name);
     const email     = params.get("email");
+    console.log("AuthCallback: email", email);
     const expiresAt = params.get("expiresAt");
+    console.log("AuthCallback: expiresAt", expiresAt);
     const err       = params.get("error");
+    console.log("AuthCallback: error param", err);
 
     if (err) {
+      console.error("AuthCallback: OAuth error detected", err);
       setError(decodeURIComponent(err).replace(/_/g, " "));
       setTimeout(() => navigate("/login", { replace: true }), 3000);
       return;
     }
 
     if (!token || !email) {
+      console.error("AuthCallback: Missing token or email");
       setError("Incomplete session data from OAuth provider.");
       setTimeout(() => navigate("/login", { replace: true }), 3000);
       return;
     }
 
+    console.log("AuthCallback: Saving session...");
     saveSession({ token, name, email, expiresAt: Number(expiresAt) });
+    console.log("AuthCallback: Session saved.");
+    console.log("AuthCallback: Refreshing auth context...");
     refresh();
+    console.log("AuthCallback: Auth context refreshed.");
+    console.log("AuthCallback: Navigating to /portal...");
     navigate("/portal", { replace: true });
+    console.log("AuthCallback: Navigation initiated.");
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

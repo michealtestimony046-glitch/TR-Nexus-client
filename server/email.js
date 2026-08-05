@@ -36,7 +36,10 @@ export async function sendVerificationEmail(email, code) {
 </body>
 </html>`,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[Resend Email Error]:", error);
+    throw new Error(error.message);
+  }
 }
 
 export async function sendResetEmail(email, code) {
@@ -70,5 +73,8 @@ export async function sendResetEmail(email, code) {
 </body>
 </html>`,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("[Resend Email Error]:", error);
+    throw new Error(error.message);
+  }
 }
