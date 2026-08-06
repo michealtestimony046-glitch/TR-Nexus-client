@@ -14,16 +14,25 @@ passport.deserializeUser((user, done) => done(null, user));
 
 // ── Shared helper: find or create account for OAuth user ─────────────────────
 async function upsertOAuthAccount(email, name) {
+  console.log("[upsertOAuthAccount] called with:", { email, name });
+
   let account = await findAccount(email);
+  console.log("[upsertOAuthAccount] findAccount result:", account);
+
   if (!account) {
+    console.log("[upsertOAuthAccount] no account found — creating new one");
     await createAccount({
       name,
       email,
       passwordHash: hashPassword(crypto.randomBytes(32).toString("hex")),
     });
     account = await findAccount(email);
+    console.log("[upsertOAuthAccount] after createAccount, findAccount result:", account);
   }
-  return { email, name: account?.name || name };
+
+  const result = { email, name: account?.name || name };
+  console.log("[upsertOAuthAccount] returning:", result);
+  return result;
 }
 
 // ── GitHub Strategy ───────────────────────────────────────────────────────────
@@ -50,6 +59,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
           const user = await upsertOAuthAccount(email, name);
           return done(null, user);
         } catch (err) {
+          console.error("[github strategy] error:", err);
           return done(err);
         }
       }
@@ -78,6 +88,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
           const user = await upsertOAuthAccount(email, name);
           return done(null, user);
         } catch (err) {
+          console.error("[google strategy] error:", err);
           return done(err);
         }
       }
