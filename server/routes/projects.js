@@ -1,342 +1,245 @@
 import { Router } from "express";
-import {
-  validateSession, getProjectsByEmail, createProject, genProjectId,
-  getAllProjects, updateProjectStatus, savePaymentRequest, confirmPayment,
-  rejectPayment, saveFeedback, saveMessage, getMessages, markMessageRead
-} from "../store.js";
 import crypto from "crypto";
+import {
+  findAccount, createAccount, hashPassword, updatePasswordHash,
+  createSession, createVerifyPending, createResetPending, consumePending,
+  checkRateLimit,
+} from "../store.js";
+import { sendVerificationEmail, sendResetEmail } from "../email.js";
+import passportInstance from "../passport.js";
 
 const router = Router();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Tragency001$";
 
-function getToken(req) {
-  const auth = req.headers.authorization || "";
-  return auth.startsWith("Bearer ") ? auth.slice(7) : null;
-}
+const FRONTEND_URL = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
 
-function isAdmin(req) {
-  return (req.headers["x-admin-key"] || "") === ADMIN_PASSWORD;
-}
+function genCode() { return String(Math.floor(100000 + Math.random() * 900000)); }
 
-// ── GET /api/projects ─────────────────────────────────────────────────────────
-router.get("/", (req, res) => {
+// ── POST /api/auth/signup ─────────────────────────────────────────────────────
+router.post("/signup", async (req, res) => {
   try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
-    const projects = getProjectsByEmail(user.email);
-    return res.json({ ok: true, projects });
-  } catch (err) {
-    console.error("[projects/get]", err.message);
-    return res.json({ ok: false, error: "Failed to load projects." });
-  }
-});
+    const { name, email, password } = req.body;
 
-// ── GET /api/projects/all — admin only ────────────────────────────────────────
-router.get("/all", (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.json({ ok: false, error: "Unauthorized." });
-    const projects = getAllProjects();
-    return res.json({ ok: true, projects });
-  } catch (err) {
-    console.error("[projects/all]", err.message);
-    return res.json({ ok: false, error: "Failed to load projects." });
-  }
-});
+    if (!name || !email || !password) {
+      return res.json({ ok: false, error: "All fields are required." });
+    }
+    if (password.length < 8) {
+      return res.json({ ok: false, error: "Password must be at least 8 characters." });
+    }
+    if (!checkRateLimit(`signup:${email.toLowerCase()}`)) {
+      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
+    }
+    if (await findAccount(email)) {
+      return res.json({ ok: false, error: "An account with this email already exists." });
+    }
 
-// ── POST /api/projects ────────────────────────────────────────────────────────
-router.post("/", (req, res) => {
-  try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
+    const code = genCode();
 
-    const { service, price, projectUrl, projectType, stage, mainIssue, referralSource, promoterCode } = req.body;
-
-    const project = createProject({
-      id: genProjectId(),
-      email: user.email,
-      name: user.name,
-      service: service || "General Consult",
-      price: price || "—",
-      projectUrl: projectUrl || "",
-      projectType: projectType || "",
-      stage: stage || "",
-      mainIssue: mainIssue || "",
-      referralSource: referralSource || "",
-      promoterCode: promoterCode || null,
-      submittedAt: new Date().toISOString(),
-      status: "active",
+    await createVerifyPending({
+      name, email, passwordHash: hashPassword(password), code,
     });
 
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/post]", err.message);
-    return res.json({ ok: false, error: "Failed to save project." });
-  }
-});
+    console.log(`[signup] Sending verification code to ${email}`);
 
-// ── PATCH /api/projects/:id/cancel ────────────────────────────────────────────
-router.patch("/:id/cancel", async (req, res) => {
-  try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
-
-    const project = updateProjectStatus(req.params.id, "pending-cancellation");
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    const webhookUrl = process.env.VITE_DISCORD_WEBHOOK_URL || "";
-    if (webhookUrl) {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: "T/R Agency — System",
-          embeds: [{
-            title: "⚠️ Project Cancellation Request",
-            color: 0xffaa00,
-            fields: [
-              { name: "Project ID", value: project.id, inline: true },
-              { name: "Client",     value: project.name, inline: true },
-              { name: "Email",      value: project.email, inline: true },
-              { name: "Service",    value: project.service, inline: false },
-            ],
-            footer: { text: "Admin approval needed" },
-            timestamp: new Date().toISOString(),
-          }],
-        }),
-      }).catch(() => {});
+    try {
+      await sendVerificationEmail(email, code);
+      console.log("[signup] Verification email sent successfully.");
+    } catch (err) {
+      console.error("[signup] Email send failed:", err);
+      return res.json({ ok: false, error: "Unable to send verification email." });
     }
 
-    return res.json({ ok: true, project });
+    return res.json({ ok: true, message: "Verification code sent." });
+
   } catch (err) {
-    console.error("[projects/cancel]", err.message);
-    return res.json({ ok: false, error: "Failed to cancel project." });
+    console.error("[signup]", err);
+    return res.json({ ok: false, error: "Signup failed." });
   }
 });
 
-// ── PATCH /api/projects/:id/accept-delivery ───────────────────────────────────
-router.patch("/:id/accept-delivery", async (req, res) => {
+// ── POST /api/auth/verify ─────────────────────────────────────────────────────
+router.post("/verify", async (req, res) => {
   try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
+    const { email, code } = req.body;
 
-    const project = updateProjectStatus(req.params.id, "completed");
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/accept-delivery]", err.message);
-    return res.json({ ok: false, error: "Failed to accept delivery." });
-  }
-});
-
-// ── POST /api/projects/:id/payment-request ────────────────────────────────────
-router.post("/:id/payment-request", (req, res) => {
-  try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
-
-    const { id } = req.params;
-    let { amount, currency, paymentMethod, receiptImage, timestamp } = req.body;
-
-    // ── Validate required fields ──────────────────────────────────────────────
-    if (!amount || !currency || !paymentMethod) {
-      return res.json({ ok: false, error: "Missing payment details." });
+    if (!email || !code) {
+      return res.json({ ok: false, error: "Email and verification code are required." });
+    }
+    if (!checkRateLimit(`verify:${email.toLowerCase()}`)) {
+      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
     }
 
-    if (!receiptImage) {
-      return res.json({ ok: false, error: "Receipt image is required." });
+    const pending = await consumePending("verify", email, code.trim());
+    if (!pending) {
+      return res.json({ ok: false, error: "Incorrect or expired verification code." });
     }
 
-    // ── Fix iOS/Safari base64 format issues ───────────────────────────────────
-    // iOS sometimes strips the data: prefix or sends raw base64
-    if (typeof receiptImage === "string") {
-      // Remove any whitespace/newlines that iOS might inject
-      receiptImage = receiptImage.replace(/\s/g, "");
-
-      // If it doesn't have data: prefix, add it
-      if (!receiptImage.startsWith("data:")) {
-        receiptImage = `data:image/jpeg;base64,${receiptImage}`;
-      }
-
-      // Validate it looks like a proper data URL
-      if (!receiptImage.includes("base64,")) {
-        return res.json({ ok: false, error: "Invalid receipt image format. Please try a different image." });
-      }
-    } else {
-      return res.json({ ok: false, error: "Invalid receipt image. Please re-upload." });
-    }
-
-    const payment = {
-      amount:       parseFloat(amount) || amount,
-      currency,
-      method:       paymentMethod,
-      network:      paymentMethod === "usdt" ? "TRC20" :
-                    paymentMethod === "usdc" ? "Solana" : null,
-      status:       "pending",
-      receiptImage,
-      requested_at: timestamp || new Date().toISOString(),
-    };
-
-    const project = savePaymentRequest(id, payment);
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/payment-request]", err.message, err.stack);
-    return res.json({ ok: false, error: "Failed to save payment. Please try again." });
-  }
-});
-
-// ── PATCH /api/projects/:id/confirm-payment — admin ──────────────────────────
-router.patch("/:id/confirm-payment", (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.json({ ok: false, error: "Unauthorized." });
-
-    const project = confirmPayment(req.params.id);
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/confirm-payment]", err.message);
-    return res.json({ ok: false, error: "Failed to confirm payment." });
-  }
-});
-
-// ── PATCH /api/projects/:id/reject-payment — admin ───────────────────────────
-router.patch("/:id/reject-payment", (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.json({ ok: false, error: "Unauthorized." });
-
-    const project = rejectPayment(req.params.id);
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/reject-payment]", err.message);
-    return res.json({ ok: false, error: "Failed to reject payment." });
-  }
-});
-
-// ── POST /api/projects/:id/feedback ──────────────────────────────────────────
-router.post("/:id/feedback", (req, res) => {
-  try {
-    const user = validateSession(getToken(req));
-    if (!user) return res.json({ ok: false, error: "Unauthorized." });
-
-    const { rating, comment } = req.body;
-    if (!rating || rating < 1 || rating > 5) {
-      return res.json({ ok: false, error: "Rating must be between 1–5." });
-    }
-
-    const project = saveFeedback(req.params.id, {
-      rating,
-      comment: comment || "",
-      submitted_at: new Date().toISOString(),
+    await createAccount({
+      name: pending.name,
+      email: pending.email,
+      passwordHash: pending.passwordHash,
     });
-    if (!project) return res.json({ ok: false, error: "Project not found." });
 
-    return res.json({ ok: true, project });
+    const { token, expiresAt } = await createSession(pending.email);
+
+    return res.json({
+      ok: true,
+      session: { name: pending.name, email: pending.email, token, expiresAt },
+    });
+
   } catch (err) {
-    console.error("[projects/feedback]", err.message);
-    return res.json({ ok: false, error: "Failed to save feedback." });
+    console.error("[verify]", err);
+    return res.json({ ok: false, error: "Verification failed." });
   }
 });
 
-// ── CHAT SYSTEM ───────────────────────────────────────────────────────────────
-
-// POST /api/projects/:id/messages
-router.post("/:id/messages", (req, res) => {
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
+router.post("/login", async (req, res) => {
   try {
-    const token = getToken(req);
-    const user  = validateSession(token);
-    const admin = isAdmin(req);
+    const { email, password } = req.body;
+    if (!email || !password) return res.json({ ok: false, error: "Email and password are required." });
+    if (!checkRateLimit(`login:${email.toLowerCase()}`)) {
+      return res.json({ ok: false, error: "Too many login attempts. Please wait a minute." });
+    }
+    const account = await findAccount(email);
+    if (!account) return res.json({ ok: false, error: "No operational account found for this email." });
+    if (!account.verified) return res.json({ ok: false, error: "Account not verified. Please complete email verification." });
+    if (account.password_hash !== hashPassword(password)) return res.json({ ok: false, error: "Incorrect password." });
 
-    if (!user && !admin) return res.json({ ok: false, error: "Unauthorized." });
+    const { token, expiresAt } = await createSession(account.email);
+    return res.json({ ok: true, session: { name: account.name, email: account.email, token, expiresAt } });
+  } catch (err) {
+    console.error("[login]", err.message);
+    return res.json({ ok: false, error: "Login failed." });
+  }
+});
 
-    const { id } = req.params;
-    let { type, content, senderName, sender } = req.body;
+// ── POST /api/auth/forgot ─────────────────────────────────────────────────────
+router.post("/forgot", async (req, res) => {
+  try {
+    const { email } = req.body;
 
-    if (!type || !content) {
-      return res.json({ ok: false, error: "Missing message fields." });
+    if (!email) return res.json({ ok: false, error: "Email is required." });
+    if (!checkRateLimit(`forgot:${email.toLowerCase()}`)) {
+      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
     }
 
-    // ── Strip oversized image content gracefully ───────────────────────────
-    // Limit image messages to ~4MB base64
-    if (type === "image" && typeof content === "string" && content.length > 5_000_000) {
-      return res.json({ ok: false, error: "Image too large. Please compress or use a smaller image." });
+    const account = await findAccount(email);
+    if (!account) {
+      return res.json({ ok: false, error: "No operational account found for this email." });
     }
 
-    const message = {
-      id:         `msg-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`,
-      sender:     admin ? "admin" : (sender || "client"),
-      senderName: senderName || (admin ? "T/R Agency Team" : user?.name || "Client"),
-      type,
-      content,
-      timestamp:  new Date().toISOString(),
-      read:       false,
-    };
+    const code = genCode();
+    await createResetPending({ email, code });
 
-    const project = saveMessage(id, message);
-    if (!project) return res.json({ ok: false, error: "Project not found." });
+    try {
+      await sendResetEmail(email, code);
+      console.log(`[forgot] Password reset email sent to ${email}`);
+    } catch (err) {
+      console.error("[forgot] Failed sending reset email");
+      console.error(err);
+      return res.json({ ok: false, error: "Unable to send password reset email." });
+    }
 
-    return res.json({ ok: true, message, project });
+    return res.json({ ok: true, message: "Password reset code sent." });
+
   } catch (err) {
-    console.error("[projects/messages/post]", err.message);
-    return res.json({ ok: false, error: "Failed to send message." });
+    console.error("[forgot]", err);
+    return res.json({ ok: false, error: "Something went wrong. Please try again." });
   }
 });
 
-// GET /api/projects/:id/messages
-router.get("/:id/messages", (req, res) => {
+// ── POST /api/auth/reset ──────────────────────────────────────────────────────
+router.post("/reset", async (req, res) => {
   try {
-    const user  = validateSession(getToken(req));
-    const admin = isAdmin(req);
+    const { email, code, newPassword } = req.body;
 
-    if (!user && !admin) return res.json({ ok: false, error: "Unauthorized." });
+    if (!email || !code || !newPassword) {
+      return res.json({ ok: false, error: "Email, verification code and new password are required." });
+    }
+    if (newPassword.length < 8) {
+      return res.json({ ok: false, error: "Password must be at least 8 characters." });
+    }
+    if (!checkRateLimit(`reset:${email.toLowerCase()}`)) {
+      return res.json({ ok: false, error: "Too many attempts. Please wait a minute." });
+    }
 
-    const messages = getMessages(req.params.id);
-    return res.json({ ok: true, messages });
+    const account = await findAccount(email);
+    if (!account) return res.json({ ok: false, error: "No account found for this email." });
+
+    const pending = await consumePending("reset", email, code.trim());
+    if (!pending) return res.json({ ok: false, error: "Invalid or expired reset code." });
+
+    await updatePasswordHash(email, hashPassword(newPassword));
+    console.log(`[reset] Password successfully changed for ${email}`);
+
+    return res.json({ ok: true });
+
   } catch (err) {
-    console.error("[projects/messages/get]", err.message);
-    return res.json({ ok: false, error: "Failed to load messages." });
+    console.error("[reset]", err);
+    return res.json({ ok: false, error: "Password reset failed." });
   }
 });
 
-// PATCH /api/projects/:id/messages/:msgId/read
-router.patch("/:id/messages/:msgId/read", (req, res) => {
-  try {
-    const user  = validateSession(getToken(req));
-    const admin = isAdmin(req);
+// ── GitHub OAuth ──────────────────────────────────────────────────────────────
+router.get(
+  "/github",
+  (req, res, next) => {
+    if (!process.env.GITHUB_CLIENT_ID) {
+      return res.redirect(`${FRONTEND_URL}/login?error=GitHub+OAuth+not+configured`);
+    }
+    next();
+  },
+  passportInstance.authenticate("github", { scope: ["user:email"] })
+);
 
-    if (!user && !admin) return res.json({ ok: false, error: "Unauthorized." });
-
-    const project = markMessageRead(req.params.id, req.params.msgId);
-    if (!project) return res.json({ ok: false, error: "Not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/messages/read]", err.message);
-    return res.json({ ok: false, error: "Failed to mark as read." });
+router.get(
+  "/github/callback",
+  passportInstance.authenticate("github", {
+    failureRedirect: `${FRONTEND_URL}/login?error=github_oauth_failed`,
+  }),
+  async (req, res) => {
+    try {
+      const { token, expiresAt } = await createSession(req.user.email);
+      const params = new URLSearchParams({
+        token, name: req.user.name, email: req.user.email, expiresAt: String(expiresAt),
+      });
+      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+    } catch (err) {
+      console.error("[github/callback]", err.message);
+      res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
+    }
   }
-});
+);
 
-// ── PATCH /api/projects/:id — admin status update (MUST be last) ──────────────
-router.patch("/:id", (req, res) => {
-  try {
-    if (!isAdmin(req)) return res.json({ ok: false, error: "Unauthorized." });
+// ── Google OAuth ──────────────────────────────────────────────────────────────
+router.get(
+  "/google",
+  (req, res, next) => {
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.redirect(`${FRONTEND_URL}/login?error=Google+OAuth+not+configured`);
+    }
+    next();
+  },
+  passportInstance.authenticate("google", { scope: ["profile", "email"] })
+);
 
-    const { status } = req.body;
-    const valid = ["active","in-analysis","pending-delivery","completed","pending-cancellation","cancelled"];
-    if (!valid.includes(status)) return res.json({ ok: false, error: "Invalid status." });
-
-    const project = updateProjectStatus(req.params.id, status);
-    if (!project) return res.json({ ok: false, error: "Project not found." });
-
-    return res.json({ ok: true, project });
-  } catch (err) {
-    console.error("[projects/patch]", err.message);
-    return res.json({ ok: false, error: "Failed to update project." });
+router.get(
+  "/google/callback",
+  passportInstance.authenticate("google", {
+    failureRedirect: `${FRONTEND_URL}/login?error=google_oauth_failed`,
+  }),
+  async (req, res) => {
+    try {
+      const { token, expiresAt } = await createSession(req.user.email);
+      const params = new URLSearchParams({
+        token, name: req.user.name, email: req.user.email, expiresAt: String(expiresAt),
+      });
+      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+    } catch (err) {
+      console.error("[google/callback]", err.message);
+      res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
+    }
   }
-});
+);
 
 export default router;
