@@ -1,83 +1,10 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// DATA_DIR can be overridden via env var — point it at a Render persistent disk
-// (e.g. DATA_DIR=/data) so JSON files survive redeploys. Without this, all
-// accounts/projects/messages are wiped every time the service redeploys.
-const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, "data");
-const ACCOUNTS_FILE = path.join(DATA_DIR, "accounts.json");
-const PENDING_FILE  = path.join(DATA_DIR, "pending.json");
-const PROJECTS_FILE = path.join(DATA_DIR, "projects.json");
-
-// ── Ensure data directory exists ──────────────────────────────────────────────
-fs.mkdirSync(DATA_DIR, { recursive: true });
-
-// ── Safe JSON read/write with backup ─────────────────────────────────────────
-function readJSON(file, fallback) {
-  try {
-    const raw = fs.readFileSync(file, "utf8");
-    if (!raw || raw.trim() === "") return fallback;
-    return JSON.parse(raw);
-  } catch (err) {
-    console.error(`[store] readJSON error (${path.basename(file)}):`, err.message);
-    // Try backup file if main is corrupted
-    const backup = file + ".bak";
-    try {
-      const raw2 = fs.readFileSync(backup, "utf8");
-      console.warn(`[store] Recovering from backup: ${backup}`);
-      return JSON.parse(raw2);
-    } catch {
-      return fallback;
-    }
-  }
-}
-
-function writeJSON(file, data) {
-  try {
-    const json = JSON.stringify(data, null, 2);
-
-    // Write to temp file first, then rename (atomic write — prevents corruption)
-    const tmp = file + ".tmp";
-    fs.writeFileSync(tmp, json, "utf8");
-
-    // Keep a rolling backup
-    try {
-      if (fs.existsSync(file)) {
-        fs.copyFileSync(file, file + ".bak");
-      }
-    } catch { /* backup failed, not critical */ }
-
-    fs.renameSync(tmp, file);
-  } catch (err) {
-    console.error(`[store] writeJSON error (${path.basename(file)}):`, err.message);
-    throw err;
-  }
-}
-
-// ── Image compression helper ──────────────────────────────────────────────────
-// Strips image data from stored messages/projects older than 7 days to save space
-function stripOldImages(projects) {
-  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  return projects.map(p => {
-    if (!p.messages) return p;
-    return {
-      ...p,
-      messages: p.messages.map(m => {
-        if (
-          (m.type === "image" || m.type === "voice" || m.type === "audio") &&
-          m.content?.startsWith("data:") &&
-          new Date(m.timestamp).getTime() < cutoff
-        ) {
-          return { ...m, content: "[media expired]", expired: true };
-        }
-        return m;
-      }),
-    };
-  });
-}
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
 // ── Password hashing ──────────────────────────────────────────────────────────
 const SALT = "tr_agency_ops_2026_salt";
@@ -86,161 +13,133 @@ export function hashPassword(pw) {
 }
 
 // ── Accounts ──────────────────────────────────────────────────────────────────
-export function getAccounts() { return readJSON(ACCOUNTS_FILE, []); }
-function saveAccounts(a) { writeJSON(ACCOUNTS_FILE, a); }
-
-export function findAccount(email) {
-  return getAccounts().find(
-    (a) => a.email.toLowerCase() === email.toLowerCase()
-  ) || null;
+export async function getAccounts() {
+  const { data, error } = await supabase.from("accounts").select("*");
+  if (error) { console.error("[store] getAccounts:", error.message); return []; }
+  return data;
 }
 
-export function createAccount({ name, email, passwordHash }) {
-  const accounts = getAccounts();
-  // Prevent duplicate accounts
-  if (accounts.find(a => a.email.toLowerCase() === email.toLowerCase())) {
-    throw new Error("Account already exists.");
-  }
-  accounts.push({
+export async function findAccount(email) {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("*")
+    .ilike("email", email)
+    .maybeSingle();
+  if (error) { console.error("[store] findAccount:", error.message); return null; }
+  return data;
+}
+
+export async function createAccount({ name, email, passwordHash }) {
+  const existing = await findAccount(email);
+  if (existing) throw new Error("Account already exists.");
+
+  const { error } = await supabase.from("accounts").insert({
     name,
     email,
-    passwordHash,
+    password_hash: passwordHash,
     verified: true,
-    createdAt: new Date().toISOString(),
-    sessions: [],
   });
-  saveAccounts(accounts);
+  if (error) throw new Error(error.message);
 }
 
-export function updatePasswordHash(email, passwordHash) {
-  const accounts = getAccounts();
-  const i = accounts.findIndex(
-    (a) => a.email.toLowerCase() === email.toLowerCase()
-  );
-  if (i !== -1) {
-    accounts[i].passwordHash = passwordHash;
-    accounts[i].updatedAt = new Date().toISOString();
-    saveAccounts(accounts);
-  }
+export async function updatePasswordHash(email, passwordHash) {
+  const { error } = await supabase
+    .from("accounts")
+    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
+    .ilike("email", email);
+  if (error) console.error("[store] updatePasswordHash:", error.message);
 }
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
 const SESSION_TTL = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-export function createSession(email) {
+export async function createSession(email) {
+  const account = await findAccount(email);
+  if (!account) throw new Error(`Account not found: ${email}`);
+
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + SESSION_TTL;
 
-  const accounts = getAccounts();
-
-  const account = accounts.find(
-    (a) => a.email.toLowerCase() === email.toLowerCase()
-  );
-
-  if (!account) {
-    throw new Error(`Account not found: ${email}`);
-  }
-
-  account.sessions ??= [];
-
-  account.sessions.push({
+  const { error } = await supabase.from("sessions").insert({
     token,
-    expiresAt,
+    email: account.email,
+    expires_at: expiresAt,
   });
+  if (error) throw new Error(error.message);
 
-  saveAccounts(accounts);
-
-  return {
-    token,
-    expiresAt,
-  };
+  return { token, expiresAt };
 }
 
-export function validateSession(token) {
+export async function validateSession(token) {
   if (!token) return null;
 
-  const accounts = getAccounts();
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*, accounts(name, email)")
+    .eq("token", token)
+    .gt("expires_at", Date.now())
+    .maybeSingle();
 
-  for (const account of accounts) {
-    const session = (account.sessions || []).find(
-      (s) => s.token === token && s.expiresAt > Date.now()
-    );
-
-    if (session) {
-      return {
-        name: account.name,
-        email: account.email,
-      };
-    }
-  }
-
-  return null;
+  if (error || !data) return null;
+  return { name: data.accounts.name, email: data.accounts.email };
 }
 
-export function revokeSession(token) {
-  const accounts = getAccounts();
-  let changed = false;
-  for (const account of accounts) {
-    const before = account.sessions?.length || 0;
-    account.sessions = (account.sessions || []).filter(s => s.token !== token);
-    if (account.sessions.length !== before) changed = true;
-  }
-  if (changed) saveAccounts(accounts);
+export async function revokeSession(token) {
+  const { error } = await supabase.from("sessions").delete().eq("token", token);
+  if (error) console.error("[store] revokeSession:", error.message);
 }
 
 // ── Pending codes (verify + reset) ────────────────────────────────────────────
-export function getPending() { return readJSON(PENDING_FILE, []); }
-function savePending(p) { writeJSON(PENDING_FILE, p); }
-
-function cleanPending() {
-  savePending(getPending().filter((p) => p.expiresAt > Date.now()));
+async function cleanPending() {
+  await supabase.from("pending").delete().lt("expires_at", Date.now());
 }
 
-export function createVerifyPending({ name, email, passwordHash, code, ttl = 10 * 60 * 1000 }) {
-  cleanPending();
-  const pending = getPending().filter(
-    (p) => !(p.type === "verify" && p.email.toLowerCase() === email.toLowerCase())
-  );
-  pending.push({
-    type: "verify", name, email, passwordHash, code,
-    expiresAt: Date.now() + ttl, used: false,
+export async function createVerifyPending({ name, email, passwordHash, code, ttl = 10 * 60 * 1000 }) {
+  await cleanPending();
+  await supabase.from("pending").delete().eq("type", "verify").ilike("email", email);
+  const { error } = await supabase.from("pending").insert({
+    type: "verify", name, email, password_hash: passwordHash, code,
+    expires_at: Date.now() + ttl, used: false,
   });
-  savePending(pending);
+  if (error) console.error("[store] createVerifyPending:", error.message);
 }
 
-export function createResetPending({ email, code, ttl = 15 * 60 * 1000 }) {
-  cleanPending();
-  const pending = getPending().filter(
-    (p) => !(p.type === "reset" && p.email.toLowerCase() === email.toLowerCase())
-  );
-  pending.push({
+export async function createResetPending({ email, code, ttl = 15 * 60 * 1000 }) {
+  await cleanPending();
+  await supabase.from("pending").delete().eq("type", "reset").ilike("email", email);
+  const { error } = await supabase.from("pending").insert({
     type: "reset", email, code,
-    expiresAt: Date.now() + ttl, used: false,
+    expires_at: Date.now() + ttl, used: false,
   });
-  savePending(pending);
+  if (error) console.error("[store] createResetPending:", error.message);
 }
 
-export function consumePending(type, email, code) {
-  cleanPending();
-  const pending = getPending();
-  const idx = pending.findIndex(
-    (p) =>
-      p.type === type &&
-      p.email.toLowerCase() === email.toLowerCase() &&
-      p.code === code &&
-      !p.used
-  );
-  if (idx === -1) return null;
-  const entry = pending[idx];
-  pending.splice(idx, 1);
-  savePending(pending);
-  return entry;
+export async function consumePending(type, email, code) {
+  await cleanPending();
+  const { data, error } = await supabase
+    .from("pending")
+    .select("*")
+    .eq("type", type)
+    .ilike("email", email)
+    .eq("code", code)
+    .eq("used", false)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  await supabase.from("pending").delete().eq("id", data.id);
+
+  return {
+    name: data.name,
+    email: data.email,
+    passwordHash: data.password_hash,
+  };
 }
 
-// ── Rate limiting (in-memory) ─────────────────────────────────────────────────
+// ── Rate limiting (in-memory — fine to keep as-is, doesn't need persistence) ──
 const rateLimitMap = new Map();
 const RATE_WINDOW  = 60 * 1000;
-const RATE_MAX     = 5; // bumped from 3 to 5
+const RATE_MAX     = 5;
 
 export function checkRateLimit(key) {
   const now   = Date.now();
@@ -252,24 +151,32 @@ export function checkRateLimit(key) {
 }
 
 // ── Projects ──────────────────────────────────────────────────────────────────
-export function getProjects() {
-  return readJSON(PROJECTS_FILE, []);
+export async function getProjects() {
+  const { data, error } = await supabase.from("projects").select("*");
+  if (error) { console.error("[store] getProjects:", error.message); return []; }
+  return data;
 }
 
-function saveProjects(projects) {
-  writeJSON(PROJECTS_FILE, projects);
+export async function getProjectsByEmail(email) {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .ilike("email", email)
+    .order("submitted_at", { ascending: false });
+  if (error) { console.error("[store] getProjectsByEmail:", error.message); return []; }
+  return data;
 }
 
-export function getProjectsByEmail(email) {
-  return getProjects()
-    .filter((p) => p.email.toLowerCase() === email.toLowerCase())
-    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
-}
-
-export function createProject(project) {
-  const projects = getProjects();
-  projects.push(project);
-  saveProjects(projects);
+export async function createProject(project) {
+  const { error } = await supabase.from("projects").insert({
+    id: project.id,
+    email: project.email,
+    service: project.service,
+    status: project.status || "active",
+    submitted_at: project.submittedAt || new Date().toISOString(),
+    messages: project.messages || [],
+  });
+  if (error) throw new Error(error.message);
   return project;
 }
 
@@ -278,136 +185,157 @@ export function genProjectId() {
   return `TR-2026-${num}`;
 }
 
-export function getAllProjects() {
-  return getProjects()
-    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+export async function getAllProjects() {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("submitted_at", { ascending: false });
+  if (error) { console.error("[store] getAllProjects:", error.message); return []; }
+  return data;
 }
 
-export function updateProjectStatus(id, status) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  projects[i].status    = status;
-  projects[i].updatedAt = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function updateProjectStatus(id, status) {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] updateProjectStatus:", error.message); return null; }
+  return data;
 }
 
-// ── Get single project ────────────────────────────────────────────────────────
-export function getProjectById(id) {
-  return getProjects().find((p) => p.id === id) || null;
+export async function getProjectById(id) {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) { console.error("[store] getProjectById:", error.message); return null; }
+  return data;
 }
 
 // ── Payments ──────────────────────────────────────────────────────────────────
-export function savePaymentRequest(id, payment) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  projects[i].payment = {
-    ...payment,
-    status:       "pending",
-    requested_at: payment.requested_at || new Date().toISOString(),
-  };
-  projects[i].updatedAt = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function savePaymentRequest(id, payment) {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({
+      payment: { ...payment, status: "pending", requested_at: payment.requested_at || new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] savePaymentRequest:", error.message); return null; }
+  return data;
 }
 
-export function confirmPayment(id) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  if (!projects[i].payment) projects[i].payment = {};
-  projects[i].payment.status       = "paid";
-  projects[i].payment.confirmed_at = new Date().toISOString();
-  projects[i].updatedAt            = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function confirmPayment(id) {
+  const project = await getProjectById(id);
+  if (!project) return null;
+  const payment = { ...(project.payment || {}), status: "paid", confirmed_at: new Date().toISOString() };
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ payment, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] confirmPayment:", error.message); return null; }
+  return data;
 }
 
-export function rejectPayment(id) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  if (!projects[i].payment) projects[i].payment = {};
-  projects[i].payment.status      = "rejected";
-  projects[i].payment.rejected_at = new Date().toISOString();
-  projects[i].updatedAt           = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function rejectPayment(id) {
+  const project = await getProjectById(id);
+  if (!project) return null;
+  const payment = { ...(project.payment || {}), status: "rejected", rejected_at: new Date().toISOString() };
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ payment, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] rejectPayment:", error.message); return null; }
+  return data;
 }
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
-export function saveFeedback(id, feedback) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  projects[i].feedback = {
-    ...feedback,
-    submitted_at: feedback.submitted_at || new Date().toISOString(),
-  };
-  projects[i].updatedAt = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function saveFeedback(id, feedback) {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({
+      feedback: { ...feedback, submitted_at: feedback.submitted_at || new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] saveFeedback:", error.message); return null; }
+  return data;
 }
 
 // ── Chat Messages ─────────────────────────────────────────────────────────────
-export function saveMessage(id, message) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  if (!projects[i].messages) projects[i].messages = [];
-  projects[i].messages.push(message);
-  projects[i].updatedAt = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function saveMessage(id, message) {
+  const project = await getProjectById(id);
+  if (!project) return null;
+  const messages = [...(project.messages || []), message];
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ messages, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] saveMessage:", error.message); return null; }
+  return data;
 }
 
-export function getMessages(id) {
-  const projects = getProjects();
-  const project  = projects.find((p) => p.id === id);
-  if (!project) return [];
-  return project.messages || [];
+export async function getMessages(id) {
+  const project = await getProjectById(id);
+  return project?.messages || [];
 }
 
-export function markMessageRead(id, msgId) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  if (!projects[i].messages) return null;
-  const mi = projects[i].messages.findIndex((m) => m.id === msgId);
-  if (mi === -1) return null;
-  projects[i].messages[mi].read = true;
-  projects[i].updatedAt         = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function markMessageRead(id, msgId) {
+  const project = await getProjectById(id);
+  if (!project) return null;
+  const messages = (project.messages || []).map(m =>
+    m.id === msgId ? { ...m, read: true } : m
+  );
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ messages, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] markMessageRead:", error.message); return null; }
+  return data;
 }
 
-// ── Mark ALL messages in a project as read ────────────────────────────────────
-export function markAllMessagesRead(id) {
-  const projects = getProjects();
-  const i = projects.findIndex((p) => p.id === id);
-  if (i === -1) return null;
-  if (!projects[i].messages) return projects[i];
-  projects[i].messages = projects[i].messages.map(m => ({ ...m, read: true }));
-  projects[i].updatedAt = new Date().toISOString();
-  saveProjects(projects);
-  return projects[i];
+export async function markAllMessagesRead(id) {
+  const project = await getProjectById(id);
+  if (!project) return null;
+  const messages = (project.messages || []).map(m => ({ ...m, read: true }));
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ messages, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .maybeSingle();
+  if (error) { console.error("[store] markAllMessagesRead:", error.message); return null; }
+  return data;
 }
 
 // ── Analytics helpers ─────────────────────────────────────────────────────────
-export function getStats() {
-  const projects = getProjects();
-  const accounts = getAccounts();
+export async function getStats() {
+  const projects = await getProjects();
+  const accounts = await getAccounts();
   return {
-    totalProjects:   projects.length,
-    totalClients:    accounts.length,
+    totalProjects: projects.length,
+    totalClients: accounts.length,
     byStatus: {
-      active:               projects.filter(p => p.status === "active").length,
-      "in-analysis":        projects.filter(p => p.status === "in-analysis").length,
-      "pending-delivery":   projects.filter(p => p.status === "pending-delivery").length,
-      completed:            projects.filter(p => p.status === "completed").length,
-      cancelled:            projects.filter(p => p.status === "cancelled").length,
+      active: projects.filter(p => p.status === "active").length,
+      "in-analysis": projects.filter(p => p.status === "in-analysis").length,
+      "pending-delivery": projects.filter(p => p.status === "pending-delivery").length,
+      completed: projects.filter(p => p.status === "completed").length,
+      cancelled: projects.filter(p => p.status === "cancelled").length,
     },
     pendingPayments: projects.filter(p => p.payment?.status === "pending").length,
     confirmedPayments: projects.filter(p => p.payment?.status === "paid").length,
