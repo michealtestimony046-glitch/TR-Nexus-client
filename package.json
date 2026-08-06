@@ -15,6 +15,7 @@
     "preview": "npm run build && npm run start"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
