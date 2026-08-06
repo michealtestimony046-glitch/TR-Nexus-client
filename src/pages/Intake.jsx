@@ -80,8 +80,9 @@ async function fireWebhook(payload) {
 }
 
 async function saveProject(payload, token) {
+  const url = `${apiBase}/api/projects`;
   try {
-    const res = await fetch(`${apiBase}/api/projects`, {
+    const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -89,9 +90,10 @@ async function saveProject(payload, token) {
       },
       body: JSON.stringify(payload),
     });
-    return res.json();
-  } catch {
-    return { ok: false, error: "Network error. Please check your connection." };
+    const json = await res.json();
+    return { ...json, __debugUrl: url, __debugStatus: res.status };
+  } catch (err) {
+    return { ok: false, error: `Network error calling ${url}: ${err.message}`, __debugUrl: url };
   }
 }
 
@@ -293,9 +295,9 @@ export default function Intake() {
         return;
       }
 
-      setSubmitError(
-        projectResult?.error || "Something went wrong saving your project. Please try again."
-      );
+setSubmitError(
+  `${projectResult?.error || "Unknown error"} | URL: ${projectResult?.__debugUrl} | Status: ${projectResult?.__debugStatus}`
+);
       setSubmitting(false);
       return;
     }
