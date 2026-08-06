@@ -60,11 +60,14 @@ export async function createSession(email) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + SESSION_TTL;
 
-  const { error } = await supabase.from("sessions").insert({
+  const { data, error } = await supabase.from("sessions").insert({
     token,
     email: account.email,
     expires_at: expiresAt,
-  });
+  }).select();
+
+  console.log("[createSession] insert result:", { data, error, token, expiresAt });
+
   if (error) throw new Error(error.message);
 
   return { token, expiresAt };
