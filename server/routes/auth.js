@@ -351,33 +351,23 @@ router.get(
   }),
   (req, res) => {
     try {
-      let account = findAccount(req.user.email);
-
-      if (!account) {
-        createAccount({
-          name: req.user.name,
-          email: req.user.email,
-          passwordHash: null,
-        });
-
-        account = findAccount(req.user.email);
-      }
-
-      const { token, expiresAt } = createSession(account.email);
-
+      console.log("[google/callback] FRONTEND_URL raw:", JSON.stringify(FRONTEND_URL));
+      const { token, expiresAt } = createSession(req.user.email);
       const params = new URLSearchParams({
         token,
-        name: account.name,
-        email: account.email,
+        name: req.user.name,
+        email: req.user.email,
         expiresAt: String(expiresAt),
       });
-
-      res.redirect(`${FRONTEND_URL}/auth/callback?${params}`);
+      const redirectUrl = `${FRONTEND_URL}/auth/callback?${params}`;
+      console.log("[google/callback] Redirecting to:", JSON.stringify(redirectUrl));
+      res.redirect(redirectUrl);
     } catch (err) {
-      console.error("[google/callback]", err);
+      console.error("[google/callback]", err.message);
       res.redirect(`${FRONTEND_URL}/login?error=session_failed`);
     }
   }
 );
+
 
 export default router;
