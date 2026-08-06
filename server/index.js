@@ -132,15 +132,48 @@ if (isProd) {
   });
 }
 
+// ── Keep-alive self-ping (prevents Render free tier from sleeping) ───────────
+function startKeepAlive() {
+  const SELF_URL = (process.env.APP_URL || "").trim().replace(/\/$/, "");
+  if (!SELF_URL) {
+    console.log("⚠️  [keep-alive] APP_URL not set — self-ping disabled.");
+    return;
+  }
+  const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+
+  setInterval(() => {
+    fetch(`${SELF_URL}/api/health`)
+      .then((res) => {
+        const ts = new Date().toISOString();
+        console.log(`💓 [keep-alive] ${ts} — ping ok (${res.status})`);
+      })
+      .catch((err) => {
+        const ts = new Date().toISOString();
+        console.error(`⚠️  [keep-alive] ${ts} — ping failed: ${err.message}`);
+      });
+  }, INTERVAL_MS);
+
+  console.log(`💓 [keep-alive] Armed — pinging self every 10 minutes.`);
+}
+
 // ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, "0.0.0.0", () => {
+  const ts = new Date().toISOString();
   console.log(`
-╔══════════════════════════════════════╗
-║       T/R Agency — Server Ready      ║
-╠══════════════════════════════════════╣
-║  Port : ${PORT}
-║  Mode : ${isProd ? "production" : "development"}
-║  Body : 20mb limit
-╚══════════════════════════════════════╝
+╔═══════════════════════════════════════════════════╗
+║                                                     ║
+║        ▲ T/R AGENCY — CORE API ▲                   ║
+║        Operational Systems Online                  ║
+║                                                     ║
+╠═══════════════════════════════════════════════════╣
+║  ● Port         : ${String(PORT).padEnd(33)}║
+║  ● Mode         : ${(isProd ? "PRODUCTION" : "DEVELOPMENT").padEnd(33)}║
+║  ● Body limit   : ${"20mb".padEnd(33)}║
+║  ● Boot time    : ${ts.padEnd(33)}║
+║  ● Status       : ${"ALL SYSTEMS NOMINAL".padEnd(33)}║
+║                                                     ║
+╚═══════════════════════════════════════════════════╝
   `);
+
+  if (isProd) startKeepAlive();
 });
