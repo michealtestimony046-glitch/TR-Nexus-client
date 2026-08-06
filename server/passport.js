@@ -7,24 +7,21 @@ import { findAccount, createAccount, hashPassword } from "./store.js";
 const GitHubStrategy = passportGitHub.Strategy;
 const GoogleStrategy = passportGoogle.Strategy;
 
-// Trim to prevent subtle bugs from accidental whitespace in the env var
 const APP_URL = (process.env.APP_URL || "http://localhost:3001").trim().replace(/\/$/, "");
 
-// We only use passport sessions briefly for OAuth state; real sessions live in accounts.json
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((user, done) => done(null, user));
 
 // ── Shared helper: find or create account for OAuth user ─────────────────────
-function upsertOAuthAccount(email, name) {
-  let account = findAccount(email);
+async function upsertOAuthAccount(email, name) {
+  let account = await findAccount(email);
   if (!account) {
-    // Create account with random unguessable password hash (OAuth users can't log in with a password)
-    createAccount({
+    await createAccount({
       name,
       email,
       passwordHash: hashPassword(crypto.randomBytes(32).toString("hex")),
     });
-    account = findAccount(email);
+    account = await findAccount(email);
   }
   return { email, name: account?.name || name };
 }
@@ -50,7 +47,7 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
             });
           }
           const name = profile.displayName || profile.username || "GitHub User";
-          const user = upsertOAuthAccount(email, name);
+          const user = await upsertOAuthAccount(email, name);
           return done(null, user);
         } catch (err) {
           return done(err);
@@ -78,7 +75,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             });
           }
           const name = profile.displayName || "Google User";
-          const user = upsertOAuthAccount(email, name);
+          const user = await upsertOAuthAccount(email, name);
           return done(null, user);
         } catch (err) {
           return done(err);
