@@ -20,13 +20,31 @@ export async function getAccounts() {
 }
 
 export async function findAccount(email) {
-  const { data, error } = await supabase
-    .from("accounts")
-    .select("*")
-    .ilike("email", email)
-    .maybeSingle();
-  if (error) { console.error("[store] findAccount:", error.message); return null; }
-  return data;
+  try {
+    const { data, error } = await supabase
+      .from("accounts")
+      .select("*")
+      .ilike("email", email)
+      .maybeSingle();
+
+    if (error) {
+      console.error("[store] findAccount Supabase error:", error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error("[store] findAccount FETCH ERROR:", {
+      name: err?.name,
+      message: err?.message,
+      cause: err?.cause,
+      causeName: err?.cause?.name,
+      causeMessage: err?.cause?.message,
+      causeCode: err?.cause?.code,
+      stack: err?.stack,
+    });
+    return null;
+  }
 }
 
 export async function createAccount({ name, email, passwordHash }) {
@@ -218,7 +236,7 @@ export async function getProjectById(id) {
   return data;
 }
 
-// ── Payments ──────────────────────────────────────────────────────────────────
+// ── Payments ─────────────────────────────────────────────────────────────────
 export async function savePaymentRequest(id, payment) {
   const { data, error } = await supabase
     .from("projects")
