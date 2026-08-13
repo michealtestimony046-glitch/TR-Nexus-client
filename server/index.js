@@ -18,20 +18,18 @@ const PORT = process.env.PORT || (isProd ? 5000 : 3001);
 // restrict origins to that value only.
 // When FRONTEND_URL is not set (same-origin or local dev), allow all.
 const FRONTEND_ORIGIN = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.trim().replace(/\/$/, "") // strip trailing space / slash
+  ? process.env.FRONTEND_URL.trim().replace(/\/$/, "")
   : null;
 
 app.use(
   cors({
     origin: FRONTEND_ORIGIN
       ? (origin, cb) => {
-          // Allow no-origin requests (server-to-server, curl) and the configured frontend
           if (!origin || origin === FRONTEND_ORIGIN) return cb(null, true);
-          return cb(null, false); // reject — do NOT throw, that produces a 500
+          return cb(null, false);
         }
-      : true, // no restriction when FRONTEND_URL is not configured
+      : true,
     credentials: true,
-    // Explicitly allow the headers the frontend sends — required for preflight
     allowedHeaders: ["Content-Type", "Authorization", "x-admin-key"],
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
@@ -41,23 +39,89 @@ app.use(
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));
 
+// ── Server-side project initialization webhook ───────────────────────────────
+// The intake page used to send this Discord notification directly from the
+// browser. That is unreliable because browser CORS/network rules can block a
+// Discord webhook. We now also send it from the API after /api/projects returns
+// a successful 201. The database save remains the source of truth.
+app.use((req, res, next) => {
+  if (req.method !== "POST" || req.path !== "/api/projects") return next();
+
+  res.on("finish", () => {
+    if (res.statusCode !== 201) return;
+
+    const webhookUrl = process.env.VITE_DISCORD_WEBHOOK_URL || "";
+    if (!webhookUrl) {
+      console.warn("[project-init-webhook] VITE_DISCORD_WEBHOOK_URL is not configured");
+      return;
+    }
+
+    const payload = req.body || {};
+    const projectId = payload.projectId || "—";
+    const submittedAt = payload.submittedAt || new Date().toISOString();
+
+    fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: "T/R Intake — System",
+        content: "**New Project Initialized** — admin-leads",
+        embeds: [
+          {
+            title: `🚀 Project Initialized — ${payload.service || "General Consult"}`,
+            color: 0x38bdf8,
+            fields: [
+              { name: "Project ID", value: projectId, inline: true },
+              { name: "Name", value: payload.name || "—", inline: true },
+              { name: "Email", value: payload.email || "—", inline: true },
+              { name: "Project URL", value: payload.projectUrl || "—", inline: true },
+              { name: "Project Type", value: payload.projectType || "—", inline: true },
+              { name: "Current Stage", value: payload.stage || "—", inline: true },
+              { name: "Referral Source", value: payload.referralSource || "—", inline: true },
+              ...(payload.promoterCode
+                ? [{ name: "Promoter Code", value: payload.promoterCode, inline: true }]
+                : []),
+              { name: "Service", value: payload.service || "General Consult", inline: false },
+              { name: "Main Issue / Goal", value: payload.mainIssue || "—", inline: false },
+            ],
+            footer: { text: "T/R Agency · Project Initialization" },
+            timestamp: submittedAt,
+          },
+        ],
+      }),
+    })
+      .then(async (webhookResponse) => {
+        if (!webhookResponse.ok) {
+          const text = await webhookResponse.text().catch(() => "");
+          console.error(
+            `[project-init-webhook] Discord returned ${webhookResponse.status}: ${text}`
+          );
+          return;
+        }
+        console.log(`[project-init-webhook] Notification sent for ${projectId}`);
+      })
+      .catch((err) => {
+        console.error("[project-init-webhook] Failed to send:", err);
+      });
+  });
+
+  next();
+});
+
 // ── Session (used only for OAuth state — max 10 min) ─────────────────────────
-// Using memorystore instead of the default MemoryStore to avoid the production
-// warning and prevent memory leaks. Sessions are only needed briefly for the
-// OAuth handshake, so no external store (Postgres/Redis) is required.
 const SessionStore = MemoryStore(session);
 app.use(
   session({
     store: new SessionStore({
-      checkPeriod: 10 * 60 * 1000, // prune expired entries every 10 min
+      checkPeriod: 10 * 60 * 1000,
     }),
     secret: process.env.SESSION_SECRET || "dev-fallback-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: isProd,          // HTTPS-only in production
+      secure: isProd,
       httpOnly: true,
-      maxAge: 10 * 60 * 1000, // 10 minutes — just long enough to complete OAuth
+      maxAge: 10 * 60 * 1000,
     },
   })
 );
@@ -132,14 +196,14 @@ if (isProd) {
   });
 }
 
-// ── Keep-alive self-ping (prevents Render free tier from sleeping) ───────────
+// ── Keep-alive self-ping ──────────────────────────────────────────────────────
 function startKeepAlive() {
   const SELF_URL = (process.env.APP_URL || "").trim().replace(/\/$/, "");
   if (!SELF_URL) {
     console.log("⚠️  [keep-alive] APP_URL not set — self-ping disabled.");
     return;
   }
-  const INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+  const INTERVAL_MS = 10 * 60 * 1000;
 
   setInterval(() => {
     fetch(`${SELF_URL}/api/health`)
