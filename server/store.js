@@ -1,10 +1,24 @@
-import { createClient } from "@supabase/supabase-js";
+import { neon } from "@neondatabase/serverless";
 import crypto from "crypto";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// Neon is now the application's only database backend.
+// Set DATABASE_URL in Render to the connection string from the Neon dashboard.
+const DATABASE_URL = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error("[store] DATABASE_URL is not configured.");
+}
+
+const sql = DATABASE_URL ? neon(DATABASE_URL) : null;
+
+function db() {
+  if (!sql) throw new Error("DATABASE_URL is not configured.");
+  return sql;
+}
+
+function json(value) {
+  return JSON.stringify(value ?? {});
+}
 
 // ── Password hashing ──────────────────────────────────────────────────────────
 const SALT = "tr_agency_ops_2026_salt";
@@ -14,58 +28,56 @@ export function hashPassword(pw) {
 
 // ── Accounts ──────────────────────────────────────────────────────────────────
 export async function getAccounts() {
-  const { data, error } = await supabase.from("accounts").select("*");
-  if (error) { console.error("[store] getAccounts:", error.message); return []; }
-  return data;
+  try {
+    return await db()`
+      SELECT *
+      FROM accounts
+      ORDER BY created_at ASC
+    `;
+  } catch (err) {
+    console.error("[store] getAccounts:", err);
+    return [];
+  }
 }
 
 export async function findAccount(email) {
   try {
-    const { data, error } = await supabase
-      .from("accounts")
-      .select("*")
-      .ilike("email", email)
-      .maybeSingle();
-
-    if (error) {
-      console.error("[store] findAccount Supabase error:", error);
-      return null;
-    }
-
-    return data;
+    const rows = await db()`
+      SELECT *
+      FROM accounts
+      WHERE LOWER(email) = LOWER(${email})
+      LIMIT 1
+    `;
+    return rows[0] || null;
   } catch (err) {
-    console.error("[store] findAccount FETCH ERROR:", {
-      name: err?.name,
-      message: err?.message,
-      cause: err?.cause,
-      causeName: err?.cause?.name,
-      causeMessage: err?.cause?.message,
-      causeCode: err?.cause?.code,
-      stack: err?.stack,
-    });
-    return null;
+    console.error("[store] findAccount:", err);
+    throw err;
   }
 }
 
-export async function createAccount({ name, email, passwordHash }) {
+export async function createAccount({ name, email, passwordHash, verified = true }) {
   const existing = await findAccount(email);
   if (existing) throw new Error("Account already exists.");
 
-  const { error } = await supabase.from("accounts").insert({
-    name,
-    email,
-    password_hash: passwordHash,
-    verified: true,
-  });
-  if (error) throw new Error(error.message);
+  const rows = await db()`
+    INSERT INTO accounts (name, email, password_hash, verified)
+    VALUES (${name}, ${email}, ${passwordHash}, ${verified})
+    RETURNING *
+  `;
+
+  return rows[0] || null;
 }
 
 export async function updatePasswordHash(email, passwordHash) {
-  const { error } = await supabase
-    .from("accounts")
-    .update({ password_hash: passwordHash, updated_at: new Date().toISOString() })
-    .ilike("email", email);
-  if (error) console.error("[store] updatePasswordHash:", error.message);
+  const rows = await db()`
+    UPDATE accounts
+    SET password_hash = ${passwordHash}, updated_at = CURRENT_TIMESTAMP
+    WHERE LOWER(email) = LOWER(${email})
+    RETURNING *
+  `;
+
+  if (!rows[0]) throw new Error(`Account not found: ${email}`);
+  return rows[0];
 }
 
 // ── Sessions ──────────────────────────────────────────────────────────────────
@@ -78,15 +90,10 @@ export async function createSession(email) {
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = Date.now() + SESSION_TTL;
 
-  const { data, error } = await supabase.from("sessions").insert({
-    token,
-    email: account.email,
-    expires_at: expiresAt,
-  }).select();
-
-  console.log("[createSession] insert result:", { data, error, token, expiresAt });
-
-  if (error) throw new Error(error.message);
+  await db()`
+    INSERT INTO sessions (token, email, expires_at)
+    VALUES (${token}, ${account.email}, ${expiresAt})
+  `;
 
   return { token, expiresAt };
 }
@@ -94,61 +101,105 @@ export async function createSession(email) {
 export async function validateSession(token) {
   if (!token) return null;
 
-  const { data, error } = await supabase
-    .from("sessions")
-    .select("*, accounts(name, email)")
-    .eq("token", token)
-    .gt("expires_at", Date.now())
-    .maybeSingle();
+  try {
+    const rows = await db()`
+      SELECT a.name, a.email
+      FROM sessions s
+      INNER JOIN accounts a ON LOWER(a.email) = LOWER(s.email)
+      WHERE s.token = ${token}
+        AND s.expires_at > ${Date.now()}
+      LIMIT 1
+    `;
 
-  if (error || !data) return null;
-  return { name: data.accounts.name, email: data.accounts.email };
+    return rows[0] ? { name: rows[0].name, email: rows[0].email } : null;
+  } catch (err) {
+    console.error("[store] validateSession:", err);
+    return null;
+  }
 }
 
 export async function revokeSession(token) {
-  const { error } = await supabase.from("sessions").delete().eq("token", token);
-  if (error) console.error("[store] revokeSession:", error.message);
+  try {
+    await db()`
+      DELETE FROM sessions
+      WHERE token = ${token}
+    `;
+  } catch (err) {
+    console.error("[store] revokeSession:", err);
+  }
 }
 
 // ── Pending codes (verify + reset) ────────────────────────────────────────────
 async function cleanPending() {
-  await supabase.from("pending").delete().lt("expires_at", Date.now());
+  await db()`
+    DELETE FROM pending
+    WHERE expires_at < ${Date.now()}
+  `;
 }
 
-export async function createVerifyPending({ name, email, passwordHash, code, ttl = 10 * 60 * 1000 }) {
+export async function createVerifyPending({
+  name,
+  email,
+  passwordHash,
+  code,
+  ttl = 10 * 60 * 1000,
+}) {
   await cleanPending();
-  await supabase.from("pending").delete().eq("type", "verify").ilike("email", email);
-  const { error } = await supabase.from("pending").insert({
-    type: "verify", name, email, password_hash: passwordHash, code,
-    expires_at: Date.now() + ttl, used: false,
-  });
-  if (error) console.error("[store] createVerifyPending:", error.message);
+
+  await db()`
+    DELETE FROM pending
+    WHERE type = 'verify'
+      AND LOWER(email) = LOWER(${email})
+  `;
+
+  await db()`
+    INSERT INTO pending (type, name, email, password_hash, code, expires_at, used)
+    VALUES ('verify', ${name}, ${email}, ${passwordHash}, ${code}, ${Date.now() + ttl}, false)
+  `;
 }
 
-export async function createResetPending({ email, code, ttl = 15 * 60 * 1000 }) {
+export async function createResetPending({
+  email,
+  code,
+  ttl = 15 * 60 * 1000,
+}) {
   await cleanPending();
-  await supabase.from("pending").delete().eq("type", "reset").ilike("email", email);
-  const { error } = await supabase.from("pending").insert({
-    type: "reset", email, code,
-    expires_at: Date.now() + ttl, used: false,
-  });
-  if (error) console.error("[store] createResetPending:", error.message);
+
+  await db()`
+    DELETE FROM pending
+    WHERE type = 'reset'
+      AND LOWER(email) = LOWER(${email})
+  `;
+
+  await db()`
+    INSERT INTO pending (type, email, code, expires_at, used)
+    VALUES ('reset', ${email}, ${code}, ${Date.now() + ttl}, false)
+  `;
 }
 
 export async function consumePending(type, email, code) {
   await cleanPending();
-  const { data, error } = await supabase
-    .from("pending")
-    .select("*")
-    .eq("type", type)
-    .ilike("email", email)
-    .eq("code", code)
-    .eq("used", false)
-    .maybeSingle();
 
-  if (error || !data) return null;
+  const rows = await db()`
+    SELECT *
+    FROM pending
+    WHERE type = ${type}
+      AND LOWER(email) = LOWER(${email})
+      AND code = ${code}
+      AND used = false
+      AND expires_at > ${Date.now()}
+    ORDER BY id DESC
+    LIMIT 1
+  `;
 
-  await supabase.from("pending").delete().eq("id", data.id);
+  const data = rows[0];
+  if (!data) return null;
+
+  // Delete immediately so a verification/reset code is single-use.
+  await db()`
+    DELETE FROM pending
+    WHERE id = ${data.id}
+  `;
 
   return {
     name: data.name,
@@ -159,13 +210,16 @@ export async function consumePending(type, email, code) {
 
 // ── Rate limiting (in-memory — fine to keep as-is, doesn't need persistence) ──
 const rateLimitMap = new Map();
-const RATE_WINDOW  = 60 * 1000;
-const RATE_MAX     = 5;
+const RATE_WINDOW = 60 * 1000;
+const RATE_MAX = 5;
 
 export function checkRateLimit(key) {
-  const now   = Date.now();
+  const now = Date.now();
   const entry = rateLimitMap.get(key) || { count: 0, resetAt: now + RATE_WINDOW };
-  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + RATE_WINDOW; }
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + RATE_WINDOW;
+  }
   entry.count++;
   rateLimitMap.set(key, entry);
   return entry.count <= RATE_MAX;
@@ -173,32 +227,49 @@ export function checkRateLimit(key) {
 
 // ── Projects ──────────────────────────────────────────────────────────────────
 export async function getProjects() {
-  const { data, error } = await supabase.from("projects").select("*");
-  if (error) { console.error("[store] getProjects:", error.message); return []; }
-  return data;
+  try {
+    return await db()`
+      SELECT *
+      FROM projects
+      ORDER BY submitted_at DESC
+    `;
+  } catch (err) {
+    console.error("[store] getProjects:", err);
+    return [];
+  }
 }
 
 export async function getProjectsByEmail(email) {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .ilike("email", email)
-    .order("submitted_at", { ascending: false });
-  if (error) { console.error("[store] getProjectsByEmail:", error.message); return []; }
-  return data;
+  try {
+    return await db()`
+      SELECT *
+      FROM projects
+      WHERE LOWER(email) = LOWER(${email})
+      ORDER BY submitted_at DESC
+    `;
+  } catch (err) {
+    console.error("[store] getProjectsByEmail:", err);
+    return [];
+  }
 }
 
 export async function createProject(project) {
-  const { error } = await supabase.from("projects").insert({
-    id: project.id,
-    email: project.email,
-    service: project.service,
-    status: project.status || "active",
-    submitted_at: project.submittedAt || new Date().toISOString(),
-    messages: project.messages || [],
-  });
-  if (error) throw new Error(error.message);
-  return project;
+  const rows = await db()`
+    INSERT INTO projects (
+      id, email, service, status, submitted_at, messages
+    )
+    VALUES (
+      ${project.id},
+      ${project.email},
+      ${project.service},
+      ${project.status || "active"},
+      ${project.submittedAt || new Date().toISOString()},
+      ${json(project.messages || [])}::jsonb
+    )
+    RETURNING *
+  `;
+
+  return rows[0] || project;
 }
 
 export function genProjectId() {
@@ -207,106 +278,150 @@ export function genProjectId() {
 }
 
 export async function getAllProjects() {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("submitted_at", { ascending: false });
-  if (error) { console.error("[store] getAllProjects:", error.message); return []; }
-  return data;
+  return getProjects();
 }
 
 export async function updateProjectStatus(id, status) {
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ status, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] updateProjectStatus:", error.message); return null; }
-  return data;
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET status = ${status}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] updateProjectStatus:", err);
+    return null;
+  }
 }
 
 export async function getProjectById(id) {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("id", id)
-    .maybeSingle();
-  if (error) { console.error("[store] getProjectById:", error.message); return null; }
-  return data;
+  try {
+    const rows = await db()`
+      SELECT *
+      FROM projects
+      WHERE id = ${id}
+      LIMIT 1
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] getProjectById:", err);
+    return null;
+  }
 }
 
 // ── Payments ─────────────────────────────────────────────────────────────────
 export async function savePaymentRequest(id, payment) {
-  const { data, error } = await supabase
-    .from("projects")
-    .update({
-      payment: { ...payment, status: "pending", requested_at: payment.requested_at || new Date().toISOString() },
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] savePaymentRequest:", error.message); return null; }
-  return data;
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET payment = ${json({
+        ...payment,
+        status: "pending",
+        requested_at: payment.requested_at || new Date().toISOString(),
+      })}::jsonb,
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] savePaymentRequest:", err);
+    return null;
+  }
 }
 
 export async function confirmPayment(id) {
   const project = await getProjectById(id);
   if (!project) return null;
-  const payment = { ...(project.payment || {}), status: "paid", confirmed_at: new Date().toISOString() };
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ payment, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] confirmPayment:", error.message); return null; }
-  return data;
+
+  const payment = {
+    ...(project.payment || {}),
+    status: "paid",
+    confirmed_at: new Date().toISOString(),
+  };
+
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET payment = ${json(payment)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] confirmPayment:", err);
+    return null;
+  }
 }
 
 export async function rejectPayment(id) {
   const project = await getProjectById(id);
   if (!project) return null;
-  const payment = { ...(project.payment || {}), status: "rejected", rejected_at: new Date().toISOString() };
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ payment, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] rejectPayment:", error.message); return null; }
-  return data;
+
+  const payment = {
+    ...(project.payment || {}),
+    status: "rejected",
+    rejected_at: new Date().toISOString(),
+  };
+
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET payment = ${json(payment)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] rejectPayment:", err);
+    return null;
+  }
 }
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 export async function saveFeedback(id, feedback) {
-  const { data, error } = await supabase
-    .from("projects")
-    .update({
-      feedback: { ...feedback, submitted_at: feedback.submitted_at || new Date().toISOString() },
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] saveFeedback:", error.message); return null; }
-  return data;
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET feedback = ${json({
+        ...feedback,
+        submitted_at: feedback.submitted_at || new Date().toISOString(),
+      })}::jsonb,
+      updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] saveFeedback:", err);
+    return null;
+  }
 }
 
 // ── Chat Messages ─────────────────────────────────────────────────────────────
 export async function saveMessage(id, message) {
   const project = await getProjectById(id);
   if (!project) return null;
+
   const messages = [...(project.messages || []), message];
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ messages, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] saveMessage:", error.message); return null; }
-  return data;
+
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET messages = ${json(messages)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] saveMessage:", err);
+    return null;
+  }
 }
 
 export async function getMessages(id) {
@@ -317,56 +432,73 @@ export async function getMessages(id) {
 export async function markMessageRead(id, msgId) {
   const project = await getProjectById(id);
   if (!project) return null;
-  const messages = (project.messages || []).map(m =>
+
+  const messages = (project.messages || []).map((m) =>
     m.id === msgId ? { ...m, read: true } : m
   );
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ messages, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] markMessageRead:", error.message); return null; }
-  return data;
+
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET messages = ${json(messages)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] markMessageRead:", err);
+    return null;
+  }
 }
 
 export async function markAllMessagesRead(id) {
   const project = await getProjectById(id);
   if (!project) return null;
-  const messages = (project.messages || []).map(m => ({ ...m, read: true }));
-  const { data, error } = await supabase
-    .from("projects")
-    .update({ messages, updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .select()
-    .maybeSingle();
-  if (error) { console.error("[store] markAllMessagesRead:", error.message); return null; }
-  return data;
+
+  const messages = (project.messages || []).map((m) => ({ ...m, read: true }));
+
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET messages = ${json(messages)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+      RETURNING *
+    `;
+    return rows[0] || null;
+  } catch (err) {
+    console.error("[store] markAllMessagesRead:", err);
+    return null;
+  }
 }
 
 // ── Analytics helpers ─────────────────────────────────────────────────────────
 export async function getStats() {
   const projects = await getProjects();
   const accounts = await getAccounts();
+
   return {
     totalProjects: projects.length,
     totalClients: accounts.length,
     byStatus: {
-      active: projects.filter(p => p.status === "active").length,
-      "in-analysis": projects.filter(p => p.status === "in-analysis").length,
-      "pending-delivery": projects.filter(p => p.status === "pending-delivery").length,
-      completed: projects.filter(p => p.status === "completed").length,
-      cancelled: projects.filter(p => p.status === "cancelled").length,
+      active: projects.filter((p) => p.status === "active").length,
+      "in-analysis": projects.filter((p) => p.status === "in-analysis").length,
+      "pending-delivery": projects.filter((p) => p.status === "pending-delivery").length,
+      completed: projects.filter((p) => p.status === "completed").length,
+      cancelled: projects.filter((p) => p.status === "cancelled").length,
     },
-    pendingPayments: projects.filter(p => p.payment?.status === "pending").length,
-    confirmedPayments: projects.filter(p => p.payment?.status === "paid").length,
+    pendingPayments: projects.filter((p) => p.payment?.status === "pending").length,
+    confirmedPayments: projects.filter((p) => p.payment?.status === "paid").length,
     totalRevenue: projects
-      .filter(p => p.payment?.status === "paid")
+      .filter((p) => p.payment?.status === "paid")
       .reduce((sum, p) => sum + (parseFloat(p.payment?.amount) || 0), 0),
     avgRating: (() => {
-      const rated = projects.filter(p => p.feedback?.rating);
+      const rated = projects.filter((p) => p.feedback?.rating);
       if (!rated.length) return null;
-      return (rated.reduce((s, p) => s + p.feedback.rating, 0) / rated.length).toFixed(1);
+      return (
+        rated.reduce((s, p) => s + Number(p.feedback.rating), 0) / rated.length
+      ).toFixed(1);
     })(),
   };
 }
