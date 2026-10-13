@@ -18,15 +18,35 @@ import {
 } from "../store.js";
 import {
   createWhopClient,
+  createWhopCheckoutConfigurationInput,
   getWhopPlanId,
   isWhopConfigured,
-  WHOP_COMPANY_ID,
   getWhopEnvironment,
 } from "../whop.js";
 
 const router = Router();
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Tragency001$";
+
+function safeWhopErrorMessage(error) {
+  let message = typeof error?.message === "string" ? error.message : "Unknown error";
+  for (const secret of [process.env.WHOP_API_KEY, process.env.WHOP_WEBHOOK_SECRET]) {
+    if (secret) message = message.split(secret).join("[REDACTED]");
+  }
+  return message
+    .replace(/(authorization\s*[:=]\s*bearer\s+)\S+/gi, "$1[REDACTED]")
+    .replace(/\b(?:whop|whsec|sk_live|sk_test)_[A-Za-z0-9_-]+\b/gi, "[REDACTED]");
+}
+
+function whopCheckoutFailure(req, res, status, reasonCode, message, details = {}) {
+  const projectId = req.params.id || "unknown";
+  console.error("[projects/whop-checkout]", {
+    reasonCode,
+    projectId,
+    ...details,
+  });
+  return res.status(status).json({ ok: false, code: reasonCode, error: message });
+}
 
 function getToken(req) {
   const auth = req.headers.authorization || "";
@@ -91,35 +111,58 @@ router.get("/:id", async (req, res, next) => {
 
 // ── POST /api/projects/:id/whop-checkout -------------------------------------
 router.post("/:id/whop-checkout", async (req, res) => {
+  const projectId = req.params.id || "unknown";
+  console.info("[projects/whop-checkout] request_received", { projectId });
   try {
     const user = await getUser(req);
-    if (!user) return unauthorized(res);
-    const project = await getProjectById(req.params.id);
+    if (!user) {
+      return whopCheckoutFailure(req, res, 401, "WHOP_CHECKOUT_AUTH_REQUIRED", "Unauthorized.");
+    }
+    const project = await getProjectById(projectId);
     if (!project || project.email?.toLowerCase() !== user.email.toLowerCase()) {
-      return res.status(404).json({ ok: false, error: "Project not found." });
+      return whopCheckoutFailure(req, res, 404, "WHOP_CHECKOUT_PROJECT_NOT_FOUND", "Project not found.");
     }
     if (project.status !== "in-analysis") {
-      return res.status(409).json({ ok: false, error: "Checkout is only available while the project is in analysis." });
+      return whopCheckoutFailure(req, res, 409, "WHOP_CHECKOUT_INVALID_PROJECT_STATUS", "Checkout is only available while the project is in analysis.", {
+        projectStatus: project.status || "unknown",
+      });
     }
     if (project.payment?.status === "paid") {
-      return res.status(409).json({ ok: false, error: "This project is already paid." });
+      return whopCheckoutFailure(req, res, 409, "WHOP_CHECKOUT_ALREADY_PAID", "This project is already paid.");
     }
     const planId = getWhopPlanId(project.service);
-    if (!WHOP_COMPANY_ID || !planId || !isWhopConfigured(project.service)) {
-      return res.status(503).json({ ok: false, error: "Whop checkout is not configured for this service." });
+    if (!planId || !isWhopConfigured(project.service)) {
+      return whopCheckoutFailure(req, res, 503, "WHOP_CHECKOUT_NOT_CONFIGURED", "Whop checkout is not configured for this service.", {
+        service: project.service || "unknown",
+        planConfigured: Boolean(planId),
+        apiKeyConfigured: Boolean(process.env.WHOP_API_KEY),
+        webhookSecretConfigured: Boolean(process.env.WHOP_WEBHOOK_SECRET),
+      });
     }
-    const checkout = await createWhopClient().checkoutConfigurations.create({
-      company_id: WHOP_COMPANY_ID,
-      plan_id: planId,
-      mode: "payment",
-      metadata: { project_id: project.id },
-    }, {
-      headers: { "Idempotency-Key": `tr-whop-project-${project.id}` },
-    });
+    const frontendUrl = (process.env.FRONTEND_URL || "").trim().replace(/\/$/, "");
+    const redirectUrl = frontendUrl
+      ? `${frontendUrl}/checkout/${encodeURIComponent(project.id)}`
+      : undefined;
+    let checkout;
+    try {
+      checkout = await createWhopClient().checkoutConfigurations.create(
+        createWhopCheckoutConfigurationInput({ planId, projectId: project.id, redirectUrl }),
+        { idempotencyKey: `tr-whop-project-${project.id}` }
+      );
+    } catch (error) {
+      return whopCheckoutFailure(req, res, 502, "WHOP_API_ERROR", "Unable to start Whop checkout.", {
+        whopError: safeWhopErrorMessage(error),
+        whopStatus: Number.isInteger(error?.statusCode) ? error.statusCode : undefined,
+      });
+    }
+    if (!checkout?.id) {
+      return whopCheckoutFailure(req, res, 502, "WHOP_API_INVALID_RESPONSE", "Unable to start Whop checkout.");
+    }
     return res.json({ ok: true, sessionId: checkout.id, environment: getWhopEnvironment() });
   } catch (err) {
-    console.error("[projects/whop-checkout]", err);
-    return res.status(502).json({ ok: false, error: "Unable to start Whop checkout." });
+    return whopCheckoutFailure(req, res, 502, "WHOP_CHECKOUT_INTERNAL_ERROR", "Unable to start Whop checkout.", {
+      message: safeWhopErrorMessage(err),
+    });
   }
 });
 

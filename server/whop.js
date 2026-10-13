@@ -8,6 +8,15 @@ export const WHOP_API_KEY = process.env.WHOP_API_KEY || "";
 
 export const WHOP_PLAN_IDS = parsePlanIds(process.env.WHOP_PLAN_IDS);
 
+const SERVICE_PLAN_KEYS = {
+  "launch validation": "launch-validation",
+  "launch-validation": "launch-validation",
+  "launch intelligence": "qa-insights",
+  "qa-insights": "qa-insights",
+  "launch assurance": "launch-assurance",
+  "launch-assurance": "launch-assurance",
+};
+
 function parsePlanIds(value) {
   if (!value) return {};
   try {
@@ -20,30 +29,36 @@ function parsePlanIds(value) {
 }
 
 export function getWhopPlanId(service) {
-  const aliases = {
-    "Launch Validation": "launch-validation",
-    "Launch Intelligence": "qa-insights",
-    "Launch Assurance": "launch-assurance",
-    "Custom QA Solutions": "custom-qa",
-    "Optional Add-Ons": "add-ons",
-  };
-  if (service === "Custom QA Solutions" || service === "Optional Add-Ons" || service === "custom-qa" || service === "add-ons") return "";
-  return WHOP_PLAN_IDS[service] || WHOP_PLAN_IDS[aliases[service]] || "";
+  const rawService = String(service || "").trim();
+  const planKey = SERVICE_PLAN_KEYS[rawService.toLowerCase()];
+  if (!planKey) return "";
+  return WHOP_PLAN_IDS[planKey] || WHOP_PLAN_IDS[rawService] || "";
 }
 
 export function isWhopConfigured(service) {
-  return Boolean(WHOP_API_KEY && WHOP_COMPANY_ID && WHOP_WEBHOOK_SECRET && getWhopPlanId(service));
+  return Boolean(WHOP_API_KEY && WHOP_WEBHOOK_SECRET && getWhopPlanId(service));
+}
+
+export function createWhopCheckoutConfigurationInput({ planId, projectId, redirectUrl }) {
+  return {
+    plan_id: planId,
+    mode: "payment",
+    metadata: { project_id: projectId },
+    ...(redirectUrl ? { redirect_url: redirectUrl } : {}),
+  };
 }
 
 export function getWhopEnvironment() {
-  return process.env.WHOP_API_BASE_URL ? "sandbox" : "production";
+  return /sandbox-api\.whop\.com/i.test(process.env.WHOP_API_BASE_URL || "")
+    ? "sandbox"
+    : "production";
 }
 
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
   return new WhopClient({
     apiKey: WHOP_API_KEY,
-    ...(process.env.WHOP_API_BASE_URL ? { baseURL: process.env.WHOP_API_BASE_URL } : {}),
+    ...(process.env.WHOP_API_BASE_URL ? { baseUrl: process.env.WHOP_API_BASE_URL } : {}),
   });
 }
 

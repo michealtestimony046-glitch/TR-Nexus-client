@@ -293,22 +293,60 @@ export default function Checkout() {
   async function startWhopCheckout() {
     setLoading(true);
     setError("");
+    const endpoint = `${apiBase}/api/projects/${encodeURIComponent(projectId)}/whop-checkout`;
+    let res;
     try {
-      const res = await fetch(`${apiBase}/api/projects/${projectId}/whop-checkout`, {
+      res = await fetch(endpoint, {
         method: "POST",
         headers: { Authorization: `Bearer ${session.token}` },
       });
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error || "Unable to start Whop checkout");
-      setWhopSessionId(data.sessionId);
-      setWhopEnvironment(data.environment === "sandbox" ? "sandbox" : whopEnvironment);
-      setPaymentMethod("whop");
-      setStep("payment");
     } catch (err) {
-      setError(err.message);
-    } finally {
+      console.error("[checkout] WHOP_CHECKOUT_NETWORK_ERROR", {
+        projectId,
+        message: err?.message || "Request failed",
+      });
+      setError("Unable to reach the payment server. Please try again.");
       setLoading(false);
+      return;
     }
+
+    let data;
+    try {
+      data = await res.json();
+    } catch (err) {
+      console.error("[checkout] WHOP_CHECKOUT_INVALID_RESPONSE", {
+        projectId,
+        httpStatus: res.status,
+        message: err?.message || "Response was not JSON",
+      });
+      setError("Unable to start Whop checkout. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    if (!res.ok || !data?.ok) {
+      console.error("[checkout] WHOP_CHECKOUT_REJECTED", {
+        projectId,
+        reasonCode: data?.code || "WHOP_CHECKOUT_REQUEST_REJECTED",
+        httpStatus: res.status,
+      });
+      setError(data?.error || "Unable to start Whop checkout.");
+      setLoading(false);
+      return;
+    }
+
+    if (typeof data.sessionId !== "string" || !data.sessionId) {
+      console.error("[checkout] WHOP_CHECKOUT_MISSING_SESSION_ID", { projectId });
+      setError("Unable to start Whop checkout. Please try again.");
+      setLoading(false);
+      return;
+    }
+
+    setWhopSessionId(data.sessionId);
+    setWhopEnvironment(data.environment === "sandbox" ? "sandbox" : whopEnvironment);
+    setPaymentMethod("whop");
+    setStep("payment");
+    setLoading(false);
   }
 
   async function handleSubmitPayment() {
@@ -562,6 +600,7 @@ export default function Checkout() {
                   environment={whopEnvironment}
                   theme="dark"
                   skipRedirect
+                  returnUrl={`${window.location.origin}/checkout/${encodeURIComponent(projectId)}`}
                   onComplete={() => {
                     setWhopCompleted(true);
                     setPollStartedAt(Date.now());
