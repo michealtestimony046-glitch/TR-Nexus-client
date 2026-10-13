@@ -1,4 +1,4 @@
-import { WhopClient } from "@whop/sdk";
+import Whop from "@whop/sdk";
 import { unwrapWebhook } from "@whop/sdk/helpers";
 import { SERVICES } from "../src/services.js";
 
@@ -37,8 +37,8 @@ export function isWhopConfigured(service) {
 
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
-  return new WhopClient({
-    token: WHOP_API_KEY,
+  return new Whop({
+    apiKey: WHOP_API_KEY,
     ...(process.env.WHOP_API_BASE_URL ? { baseURL: process.env.WHOP_API_BASE_URL } : {}),
   });
 }

@@ -110,7 +110,7 @@ router.post("/:id/whop-checkout", async (req, res) => {
       return res.status(503).json({ ok: false, error: "Whop checkout is not configured for this service." });
     }
     const checkout = await createWhopClient().checkoutConfigurations.create({
-      account_id: WHOP_COMPANY_ID,
+      company_id: WHOP_COMPANY_ID,
       plan_id: planId,
       mode: "payment",
       metadata: { project_id: project.id },
@@ -340,7 +340,6 @@ router.post("/:id/payment-request", async (req, res) => {
     if (project.__payment_locked || project.payment?.status === "paid") {
       return res.status(409).json({ ok: false, error: "This project is already paid." });
     }
-    if (project.__payment_locked) return res.status(409).json({ ok: false, error: "This project is already paid." });
 
     return res.json({ ok: true, project });
   } catch (err) {
