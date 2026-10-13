@@ -17,6 +17,8 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@supabase/supabase-js": "^2.45.0",
+    "@whop/checkout": "0.7.0",
+    "@whop/sdk": "2.4.0",
     "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",

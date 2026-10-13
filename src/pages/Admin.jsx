@@ -1007,7 +1007,7 @@ export default function Admin() {
                                 }}/>
                               </div>
                             )}
-                            <div style={{ display: "flex", gap: 8 }}>
+                            {p.payment.method !== "whop" && <div style={{ display: "flex", gap: 8 }}>
                               <button onClick={() => confirmPayment(p.id)} disabled={updating === p.id}
                                 style={{
                                   flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700,
@@ -1024,7 +1024,7 @@ export default function Admin() {
                                 }}>
                                 ❌ Reject
                               </button>
-                            </div>
+                            </div>}
                           </div>
                         )}
                       </div>
@@ -1039,11 +1039,16 @@ export default function Admin() {
                       }}>
                         <span>✅</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: "#4ade80" }}>
-                          Payment Confirmed
+                          {p.payment.method === "whop" ? "Whop Payment Confirmed" : "Payment Confirmed"}
                         </span>
                         <span style={{ fontSize: 10, color: "#4ade8055" }}>
-                          {p.payment.amount} {p.payment.currency} · {timeAgo(p.payment.confirmed_at || p.payment.requested_at)}
+                          {p.payment.amount} {p.payment.currency} · {p.payment.method === "whop" ? `Whop ID: ${p.payment.whop_payment_id || "—"}` : timeAgo(p.payment.confirmed_at || p.payment.requested_at)}
                         </span>
+                        {p.payment.history?.length > 0 && (
+                          <span style={{ fontSize: 10, color: "#666" }}>
+                            · History: {p.payment.history.map((attempt, index) => `${index + 1}. ${attempt.method || "unknown"} (${attempt.status || "—"})`).join(" · ")}
+                          </span>
+                        )}
                       </div>
                     )}
 

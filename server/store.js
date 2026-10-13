@@ -314,12 +314,21 @@ export async function getProjectById(id) {
 // ── Payments ─────────────────────────────────────────────────────────────────
 export async function savePaymentRequest(id, payment) {
   try {
+    const existing = await getProjectById(id);
+    if (!existing) return null;
+    if (existing.payment?.status === "paid") return { ...existing, __payment_locked: true };
+    const history = [
+      ...(existing.payment?.history || []),
+      ...(existing.payment ? [existing.payment] : []),
+    ];
     const rows = await db()`
       UPDATE projects
       SET payment = ${json({
         ...payment,
         status: "pending",
+        method: payment.method === "whop" ? "manual" : payment.method,
         requested_at: payment.requested_at || new Date().toISOString(),
+        history,
       })}::jsonb,
       updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
@@ -335,6 +344,7 @@ export async function savePaymentRequest(id, payment) {
 export async function confirmPayment(id) {
   const project = await getProjectById(id);
   if (!project) return null;
+  if (project.payment?.status === "paid" || project.payment?.method === "whop") return project;
 
   const payment = {
     ...(project.payment || {}),
@@ -360,6 +370,7 @@ export async function confirmPayment(id) {
 export async function rejectPayment(id) {
   const project = await getProjectById(id);
   if (!project) return null;
+  if (project.payment?.status === "paid" || project.payment?.method === "whop") return project;
 
   const payment = {
     ...(project.payment || {}),
@@ -379,6 +390,63 @@ export async function rejectPayment(id) {
   } catch (err) {
     console.error("[store] rejectPayment:", err);
     return null;
+  }
+}
+
+
+export async function hasProcessedWhopEvent(eventId) {
+  if (!eventId) return false;
+  try {
+    const rows = await db()`
+      SELECT id FROM projects
+      WHERE payment->'whop_processed_event_ids' ? ${eventId}
+         OR payment->'history' @> ${json([{ whop_event_id: eventId }])}::jsonb
+      LIMIT 1
+    `;
+    return Boolean(rows[0]);
+  } catch (err) {
+    console.error("[store] hasProcessedWhopEvent:", err);
+    return false;
+  }
+}
+
+export async function recordWhopPayment(id, payment, eventId) {
+  const project = await getProjectById(id);
+  if (!project) return { kind: "missing" };
+  const current = project.payment || null;
+  if (current?.status === "paid") {
+    if (current.whop_payment_id === payment.whop_payment_id) return { kind: "duplicate", project };
+    return { kind: "already-paid", project };
+  }
+  const history = [
+    ...(current?.history || []),
+    ...(current ? [current] : []),
+  ];
+  const processed = Array.from(new Set([
+    ...(current?.whop_processed_event_ids || []),
+    eventId,
+  ].filter(Boolean)));
+  const nextPayment = {
+    ...payment,
+    status: "paid",
+    method: "whop",
+    paid_at: payment.paid_at || new Date().toISOString(),
+    whop_processed_event_ids: processed,
+    history,
+  };
+  try {
+    const rows = await db()`
+      UPDATE projects
+      SET payment = ${json(nextPayment)}::jsonb,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${id}
+        AND COALESCE(payment->>'status', '') <> 'paid'
+      RETURNING *
+    `;
+    return rows[0] ? { kind: "updated", project: rows[0] } : { kind: "already-paid", project: await getProjectById(id) };
+  } catch (err) {
+    console.error("[store] recordWhopPayment:", err);
+    throw err;
   }
 }
 

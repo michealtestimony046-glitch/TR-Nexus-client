@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import authRoutes from "./routes/auth.js";
 import projectRoutes from "./routes/projects.js";
+import whopRoutes from "./routes/whop.js";
 import passportInstance from "./passport.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,8 @@ app.use(
   })
 );
 
+// ── Whop webhooks must see the raw JSON bytes before any parser runs. ─────────
+app.use("/api/webhooks", express.raw({ type: "application/json", limit: "2mb" }), whopRoutes);
 // ── Body size limits ──────────────────────────────────────────────────────────
 app.use(express.json({ limit: "20mb" }));
 app.use(express.urlencoded({ extended: true, limit: "20mb" }));

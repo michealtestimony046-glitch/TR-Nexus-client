@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getSession, apiBase } from "../auth.js";
+import { WhopCheckoutEmbed } from "@whop/checkout/react";
 
 // ── Glassmorphism tokens (matches ChatModal.jsx) ──────────────────────────────
 const glassPanel = {
@@ -212,6 +213,11 @@ export default function Checkout() {
   const [copyFeedback, setCopyFeedback] = useState("");
   const [paymentStatus, setPaymentStatus] = useState("pending");
   const [project, setProject] = useState(null);
+  const [whopAvailable, setWhopAvailable] = useState(false);
+  const [whopSessionId, setWhopSessionId] = useState(null);
+  const [whopCompleted, setWhopCompleted] = useState(false);
+  const [pollStartedAt, setPollStartedAt] = useState(null);
+  const [paymentTimedOut, setPaymentTimedOut] = useState(false);
 
   useEffect(() => {
     if (!session || !projectId) {
@@ -222,11 +228,11 @@ export default function Checkout() {
   }, [session, projectId]);
 
   useEffect(() => {
-    if (step === "pending") {
-      const interval = setInterval(checkPaymentStatus, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [step]);
+    if (step !== "pending") return undefined;
+    const interval = setInterval(checkPaymentStatus, 5000);
+    checkPaymentStatus();
+    return () => clearInterval(interval);
+  }, [step, pollStartedAt]);
 
   async function fetchProjectInfo() {
     try {
@@ -237,6 +243,11 @@ export default function Checkout() {
       if (data.ok) {
         const proj = data.projects.find(p => p.id === projectId);
         setProject(proj);
+        const statusRes = await fetch(`${apiBase}/api/projects/${projectId}`, {
+          headers: { Authorization: `Bearer ${session.token}` },
+        });
+        const statusData = await statusRes.json();
+        setWhopAvailable(Boolean(statusData.ok && statusData.whopAvailable));
       }
     } catch (err) {
       console.error("Failed to fetch project info:", err);
@@ -244,6 +255,10 @@ export default function Checkout() {
   }
 
   async function checkPaymentStatus() {
+    if (pollStartedAt && Date.now() - pollStartedAt > 120000) {
+      setPaymentTimedOut(true);
+      return;
+    }
     try {
       const res = await fetch(`${apiBase}/api/projects/${projectId}`, {
         headers: { Authorization: `Bearer ${session.token}` }
@@ -270,6 +285,26 @@ export default function Checkout() {
       reader.onloadend = () => setImagePreview(reader.result);
       reader.readAsDataURL(file);
       setError("");
+    }
+  }
+
+  async function startWhopCheckout() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${apiBase}/api/projects/${projectId}/whop-checkout`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.token}` },
+      });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error || "Unable to start Whop checkout");
+      setWhopSessionId(data.sessionId);
+      setPaymentMethod("whop");
+      setStep("payment");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -369,6 +404,23 @@ export default function Checkout() {
             {project.service}
           </p>
 
+          {whopAvailable && (
+            <div style={{ ...glassPanel, borderRadius: 14, padding: 18, marginBottom: 20 }}>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 14 }}>Pay by card with Whop</div>
+              <div style={{ color: "#8899aa", fontSize: 12, margin: "6px 0 14px" }}>
+                The configured service plan sets the amount securely — no manual amount is needed.
+              </div>
+              <button onClick={startWhopCheckout} disabled={loading} style={{
+                width: "100%", padding: "11px 0", borderRadius: 9,
+                background: "#38bdf8", color: "#04111a", fontWeight: 800,
+                border: "none", cursor: loading ? "wait" : "pointer",
+              }}>
+                {loading ? "Opening secure checkout…" : "Continue with Whop →"}
+              </button>
+            </div>
+          )}
+          {whopAvailable && <div style={{ color: "#526273", fontSize: 11, margin: "0 0 14px", textAlign: "center" }}>or submit a bank / crypto receipt</div>}
+
           <div style={{ marginBottom: 20 }}>
             <label style={{ display: "block", fontSize: 12, color: "#8899aa", marginBottom: 6, fontWeight: 600 }}>
               Amount
@@ -443,6 +495,17 @@ export default function Checkout() {
           </h2>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12 }}>
+            {whopAvailable && (
+              <button
+                onClick={startWhopCheckout}
+                disabled={loading}
+                style={{ ...glassPanel, borderRadius: 14, padding: 22, cursor: loading ? "wait" : "pointer", color: "#fff", textAlign: "left" }}
+              >
+                <div style={{ fontSize: 26, marginBottom: 10 }}>💳</div>
+                <div style={{ fontSize: 13, fontWeight: 700 }}>Card / Whop</div>
+                <div style={{ marginTop: 6, fontSize: 10, color: "#38bdf8" }}>Secure embedded checkout</div>
+              </button>
+            )}
             {Object.entries(PAYMENT_METHODS).map(([key, method]) => (
               <button
                 key={key}
@@ -482,6 +545,34 @@ export default function Checkout() {
   if (step === "payment") {
     const method = PAYMENT_METHODS[paymentMethod];
 
+    if (paymentMethod === "whop") {
+      return (
+        <PageShell>
+          <div style={{ maxWidth: 620, width: "100%" }}>
+            <BackBtn onClick={() => setStep("method")} />
+            <GlassCard maxWidth={620}>
+              <h2 style={{ color: "#fff", marginBottom: 8, fontSize: 20, fontWeight: 800 }}>Pay securely with Whop</h2>
+              <p style={{ color: "#8899aa", marginBottom: 20, fontSize: 13 }}>The amount is set by the configured Whop plan for {project.service}.</p>
+              {whopSessionId && (
+                <WhopCheckoutEmbed
+                  sessionId={whopSessionId}
+                  theme="dark"
+                  skipRedirect
+                  onComplete={() => {
+                    setWhopCompleted(true);
+                    setPollStartedAt(Date.now());
+                    setPaymentTimedOut(false);
+                    setStep("pending");
+                  }}
+                  onPaymentError={(checkoutError) => setError(checkoutError?.message || "Whop checkout could not be completed.")}
+                />
+              )}
+              {error && <div style={{ color: "#ff6b6b", fontSize: 13, marginTop: 12 }}>{error}</div>}
+            </GlassCard>
+          </div>
+        </PageShell>
+      );
+    }
     // ── Escrow flow — message-first, brand blue accents ──────────────────────
     if (method.details.type === "escrow") {
       return (
@@ -737,14 +828,14 @@ export default function Checkout() {
               Payment Pending
             </h2>
             <p style={{ color: "#8899aa", marginBottom: 20 }}>
-              Your receipt has been submitted. We're verifying your payment.
+              {whopCompleted ? "Payment received, confirming…" : "Your receipt has been submitted. We're verifying your payment."}
             </p>
             <p style={{ color: "#6b7f92", fontSize: 12 }}>
               Invoice: {projectId}<br/>
               Amount: {amount} {currency}
             </p>
             <div style={{ marginTop: 20, fontSize: 12, color: "#8899aa" }}>
-              Checking payment status…
+              {paymentTimedOut ? "Confirmation is taking longer than usual. Please check your portal in a minute; your payment will update there when the webhook arrives." : "Checking payment status…"}
             </div>
           </div>
         </GlassCard>
