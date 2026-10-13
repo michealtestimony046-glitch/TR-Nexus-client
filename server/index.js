@@ -225,6 +225,10 @@ function startKeepAlive() {
 // ── Start server ──────────────────────────────────────────────────────────────
 app.listen(PORT, "0.0.0.0", () => {
   const ts = new Date().toISOString();
+  const whopConfigStatus = ["WHOP_API_KEY", "WHOP_COMPANY_ID", "WHOP_PLAN_IDS", "WHOP_WEBHOOK_SECRET"]
+    .map((name) => `${name}=${process.env[name]?.trim() ? "present" : "missing"}`)
+    .join(" ");
+  console.info(`[startup] Whop configuration: ${whopConfigStatus}`);
   console.log(`\n╔═══════════════════════════════════════════════════╗\n║                                                     ║\n║        ▲ T/R AGENCY — CORE API ▲                   ║\n║        Operational Systems Online                  ║\n║                                                     ║\n╠═══════════════════════════════════════════════════╣\n║  ● Port         : ${String(PORT).padEnd(33)}║\n║  ● Mode         : ${(isProd ? "PRODUCTION" : "DEVELOPMENT").padEnd(33)}║\n║  ● Body limit   : ${"20mb".padEnd(33)}║\n║  ● Boot time    : ${ts.padEnd(33)}║\n║  ● Status       : ${"ALL SYSTEMS NOMINAL".padEnd(33)}║\n║                                                     ║\n╚═══════════════════════════════════════════════════╝\n  `);
 
   if (isProd) startKeepAlive();

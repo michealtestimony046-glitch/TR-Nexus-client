@@ -68,6 +68,12 @@ test("sandbox API override uses the SDK's baseUrl option and selects sandbox emb
   assert.equal(getWhopEnvironment(), "sandbox");
 });
 
+test("Whop SDK bearer token is sourced from WHOP_API_KEY", async () => {
+  const client = createWhopClient();
+  const auth = await client._options.authProvider.getAuthRequest();
+  assert.equal(auth.headers.Authorization, "Bearer whop_test_checkout_config_only");
+});
+
 test("custom API URL does not silently label production as sandbox", () => {
   process.env.WHOP_API_BASE_URL = "https://api.whop.com/api/v1";
   assert.equal(getWhopEnvironment(), "production");

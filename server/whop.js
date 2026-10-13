@@ -57,7 +57,7 @@ export function getWhopEnvironment() {
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
   return new WhopClient({
-    apiKey: WHOP_API_KEY,
+    token: WHOP_API_KEY,
     ...(process.env.WHOP_API_BASE_URL ? { baseUrl: process.env.WHOP_API_BASE_URL } : {}),
   });
 }
