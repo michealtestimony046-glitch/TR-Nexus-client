@@ -35,6 +35,10 @@ export function isWhopConfigured(service) {
   return Boolean(WHOP_API_KEY && WHOP_COMPANY_ID && WHOP_WEBHOOK_SECRET && getWhopPlanId(service));
 }
 
+export function getWhopEnvironment() {
+  return process.env.WHOP_API_BASE_URL ? "sandbox" : "production";
+}
+
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
   return new WhopClient({
