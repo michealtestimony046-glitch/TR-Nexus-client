@@ -49,7 +49,7 @@ export async function processWhopEvent(event, deps = {}) {
   const planForService = deps.getWhopPlanId || getWhopPlanId;
   const alert = deps.sendDiscordAlert || sendDiscordAlert;
 
-  if (event?.api_version !== "v1") {
+  if (event?.api_version && event.api_version !== "v1") {
     console.warn("[whop/webhook] Ignoring unsupported/missing API version", event?.api_version);
     if (event?.id) await alert("Whop webhook API version mismatch", `Event: ${event.type || "unknown"}; API version: ${event.api_version || "missing"}`);
     return { kind: "ignored-version" };

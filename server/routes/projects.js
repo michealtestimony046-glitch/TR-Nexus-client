@@ -74,7 +74,6 @@ router.get("/:id", async (req, res, next) => {
     return res.json({
       ok: true,
       project: {
-        id: project.id,
         status: project.status,
         payment: project.payment ? {
           status: project.payment.status || null,
