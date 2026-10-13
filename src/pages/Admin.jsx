@@ -1044,7 +1044,16 @@ export default function Admin() {
                           {p.payment.method === "whop" ? "Whop Payment Confirmed" : "Payment Confirmed"}
                         </span>
                         <span style={{ fontSize: 10, color: "#4ade8055" }}>
-                          {p.payment.amount} {p.payment.currency} · {p.payment.method === "whop" ? `Whop ID: ${p.payment.whop_payment_id || "—"}` : timeAgo(p.payment.confirmed_at || p.payment.requested_at)}
+                          {p.payment.method === "whop" ? (
+                            <>
+                              Paid: {p.payment.total ?? p.payment.amount} {p.payment.currency}
+                              {p.payment.subtotal != null && <> · List price: {p.payment.subtotal} {p.payment.currency}</>}
+                              {p.payment.promo_code && <> · Promo: {p.payment.promo_code}</>}
+                              {` · Whop ID: ${p.payment.whop_payment_id || "—"}`}
+                            </>
+                          ) : (
+                            `${p.payment.amount} ${p.payment.currency} · ${timeAgo(p.payment.confirmed_at || p.payment.requested_at)}`
+                          )}
                         </span>
                         {p.payment.history?.length > 0 && (
                           <span style={{ fontSize: 10, color: "#666" }}>

@@ -301,7 +301,7 @@ export async function getProjectById(id) {
     const rows = await db()`
       SELECT *
       FROM projects
-      WHERE id = ${id}
+      WHERE id = ${id}::text
       LIMIT 1
     `;
     return rows[0] || null;
@@ -398,106 +398,172 @@ export async function rejectPayment(id) {
 }
 
 
-let whopProcessedTablePromise;
-async function ensureWhopProcessedTable() {
-  if (!whopProcessedTablePromise) {
-    whopProcessedTablePromise = (async () => {
-      await db()`
-        CREATE TABLE IF NOT EXISTS whop_processed_events (
-          event_id TEXT PRIMARY KEY,
-          payment_id TEXT,
-          event_type TEXT NOT NULL,
-          received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          processed_at TIMESTAMPTZ
-        )
-      `;
-      await db()`
-        CREATE UNIQUE INDEX IF NOT EXISTS whop_processed_success_payment_unique
-        ON whop_processed_events (payment_id)
-        WHERE event_type = 'payment.succeeded' AND payment_id IS NOT NULL
-      `;
-    })().catch((err) => {
-      whopProcessedTablePromise = null;
-      throw err;
-    });
-  }
-  return whopProcessedTablePromise;
-}
+export function createWhopEventStore(getSql) {
+  let processedTablePromise;
 
-export async function claimWhopEvent(eventId, paymentId, eventType) {
-  if (!eventId) return false;
-  await ensureWhopProcessedTable();
-  const uniquePaymentId = eventType === "payment.succeeded" ? paymentId : null;
-  const rows = await db()`
-    INSERT INTO whop_processed_events (event_id, payment_id, event_type)
-    VALUES (${eventId}, ${uniquePaymentId || null}, ${eventType || "unknown"})
-    ON CONFLICT DO NOTHING
-    RETURNING event_id
-  `;
-  return rows.length > 0;
-}
-
-export async function completeWhopEvent(eventId) {
-  await ensureWhopProcessedTable();
-  await db()`
-    UPDATE whop_processed_events SET processed_at = CURRENT_TIMESTAMP
-    WHERE event_id = ${eventId}
-  `;
-}
-
-export async function releaseWhopEvent(eventId) {
-  await ensureWhopProcessedTable();
-  await db()`
-    DELETE FROM whop_processed_events
-    WHERE event_id = ${eventId} AND processed_at IS NULL
-  `;
-}
-
-export async function hasProcessedWhopEvent(eventId) {
-  if (!eventId) return false;
-  await ensureWhopProcessedTable();
-  const rows = await db()`
-    SELECT event_id FROM whop_processed_events WHERE event_id = ${eventId} LIMIT 1
-  `;
-  return Boolean(rows[0]);
-}
-
-export async function recordWhopPayment(id, payment, eventId) {
-  try {
-    const rows = await db()`
-      UPDATE projects
-      SET payment = ${json(payment)}::jsonb ||
-        jsonb_build_object(
-          'status', 'paid',
-          'method', 'whop',
-          'paid_at', COALESCE(${payment.paid_at || null}, CURRENT_TIMESTAMP::text),
-          'history',
-            COALESCE(payment->'history', '[]'::jsonb) ||
-            CASE
-              WHEN payment IS NOT NULL AND payment->>'status' IS NOT NULL
-                THEN jsonb_build_array(payment - 'history')
-              ELSE '[]'::jsonb
-            END
-        ) ||
-        jsonb_build_object('whop_event_id', ${eventId}),
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${id}
-        AND COALESCE(payment->>'status', '') <> 'paid'
-      RETURNING *
-    `;
-    if (rows[0]) return { kind: "updated", project: rows[0] };
-    const latest = await getProjectById(id);
-    if (!latest) return { kind: "missing" };
-    if (latest.payment?.status === "paid" && latest.payment?.whop_payment_id === payment.whop_payment_id) {
-      return { kind: "duplicate", project: latest };
+  async function ensureProcessedTable() {
+    if (!processedTablePromise) {
+      processedTablePromise = (async () => {
+        await getSql()`
+          CREATE TABLE IF NOT EXISTS whop_processed_events (
+            event_id TEXT PRIMARY KEY,
+            payment_id TEXT,
+            event_type TEXT NOT NULL,
+            received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            processed_at TIMESTAMPTZ
+          )
+        `;
+        await getSql()`
+          CREATE UNIQUE INDEX IF NOT EXISTS whop_processed_success_payment_unique
+          ON whop_processed_events (payment_id)
+          WHERE event_type = 'payment.succeeded' AND payment_id IS NOT NULL
+        `;
+      })().catch((err) => {
+        processedTablePromise = null;
+        throw err;
+      });
     }
-    if (latest.payment?.status === "paid") return { kind: "already-paid", project: latest };
-    return { kind: "missing", project: latest };
-  } catch (err) {
-    console.error("[store] recordWhopPayment:", err);
-    throw err;
+    return processedTablePromise;
   }
+
+  async function claimWhopEvent(eventId, paymentId, eventType) {
+    if (!eventId) return false;
+    await ensureProcessedTable();
+
+    // Payment events are only checked here. Their IDs are written after the
+    // project payment update succeeds, so a failed update cannot block replay.
+    if (eventType === "payment.succeeded") {
+      if (paymentId) {
+        await getSql()`
+          DELETE FROM whop_processed_events
+          WHERE processed_at IS NULL
+            AND (event_id = ${eventId}::text OR payment_id = ${paymentId}::text)
+        `;
+        const rows = await getSql()`
+          SELECT processed.event_id
+          FROM whop_processed_events AS processed
+          WHERE processed.processed_at IS NOT NULL
+            AND (processed.event_id = ${eventId}::text OR processed.payment_id = ${paymentId}::text)
+            AND EXISTS (
+              SELECT 1 FROM projects
+              WHERE payment->>'status' = 'paid'
+                AND payment->>'whop_payment_id' = ${paymentId}::text
+            )
+          LIMIT 1
+        `;
+        return rows.length === 0;
+      }
+      await getSql()`
+        DELETE FROM whop_processed_events
+        WHERE processed_at IS NULL AND event_id = ${eventId}::text
+      `;
+    }
+
+    const rows = await getSql()`
+      SELECT event_id
+      FROM whop_processed_events
+      WHERE event_id = ${eventId}::text AND processed_at IS NOT NULL
+      LIMIT 1
+    `;
+    return rows.length === 0;
+  }
+
+  async function completeWhopEvent(eventId, paymentId = null, eventType = "unknown") {
+    if (!eventId) return;
+    await ensureProcessedTable();
+    const completedPaymentId = eventType === "payment.succeeded" ? paymentId : null;
+    const updated = await getSql()`
+      UPDATE whop_processed_events
+      SET payment_id = ${completedPaymentId || null}::text,
+          event_type = ${eventType || "unknown"}::text,
+          processed_at = CURRENT_TIMESTAMP
+      WHERE event_id = ${eventId}::text AND processed_at IS NULL
+      RETURNING event_id
+    `;
+    if (updated.length) return;
+
+    await getSql()`
+      INSERT INTO whop_processed_events (event_id, payment_id, event_type, processed_at)
+      VALUES (
+        ${eventId}::text,
+        ${completedPaymentId || null}::text,
+        ${eventType || "unknown"}::text,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT DO NOTHING
+    `;
+  }
+
+  async function releaseWhopEvent(eventId) {
+    if (!eventId) return;
+    await ensureProcessedTable();
+    await getSql()`
+      DELETE FROM whop_processed_events
+      WHERE event_id = ${eventId}::text AND processed_at IS NULL
+    `;
+  }
+
+  async function hasProcessedWhopEvent(eventId) {
+    if (!eventId) return false;
+    await ensureProcessedTable();
+    const rows = await getSql()`
+      SELECT event_id
+      FROM whop_processed_events
+      WHERE event_id = ${eventId}::text AND processed_at IS NOT NULL
+      LIMIT 1
+    `;
+    return Boolean(rows[0]);
+  }
+
+  return { claimWhopEvent, completeWhopEvent, releaseWhopEvent, hasProcessedWhopEvent };
 }
+
+const whopEventStore = createWhopEventStore(db);
+export const claimWhopEvent = whopEventStore.claimWhopEvent;
+export const completeWhopEvent = whopEventStore.completeWhopEvent;
+export const releaseWhopEvent = whopEventStore.releaseWhopEvent;
+export const hasProcessedWhopEvent = whopEventStore.hasProcessedWhopEvent;
+
+export function createWhopPaymentRecorder({ getSql, findProject }) {
+  return async function recordWhopPayment(id, payment, eventId) {
+    try {
+      const rows = await getSql()`
+        UPDATE projects
+        SET payment = ${json(payment)}::jsonb ||
+          jsonb_build_object(
+            'status', 'paid',
+            'method', 'whop',
+            'paid_at', COALESCE(${payment.paid_at || null}::timestamptz, CURRENT_TIMESTAMP)::text,
+            'history',
+              COALESCE(payment->'history', '[]'::jsonb) ||
+              CASE
+                WHEN payment IS NOT NULL AND payment->>'status' IS NOT NULL
+                  THEN jsonb_build_array(payment - 'history')
+                ELSE '[]'::jsonb
+              END
+          ) ||
+          jsonb_build_object('whop_event_id', ${eventId}::text),
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ${id}::text
+          AND COALESCE(payment->>'status', '') <> 'paid'
+        RETURNING *
+      `;
+      if (rows[0]) return { kind: "updated", project: rows[0] };
+      const latest = await findProject(id);
+      if (!latest) return { kind: "missing" };
+      if (latest.payment?.status === "paid" && latest.payment?.whop_payment_id === payment.whop_payment_id) {
+        return { kind: "duplicate", project: latest };
+      }
+      if (latest.payment?.status === "paid") return { kind: "already-paid", project: latest };
+      return { kind: "missing", project: latest };
+    } catch (err) {
+      console.error("[store] recordWhopPayment:", err?.message || String(err));
+      throw err;
+    }
+  };
+}
+
+export const recordWhopPayment = createWhopPaymentRecorder({ getSql: db, findProject: getProjectById });
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
 export async function saveFeedback(id, feedback) {
