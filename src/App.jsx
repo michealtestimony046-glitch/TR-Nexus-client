@@ -4,15 +4,15 @@ import { AuthProvider } from "./context/AuthContext.jsx";
 import AppShell from "./components/AppShell.jsx";
 import Home from "./pages/Home.jsx";
 import About from "./pages/About.jsx";
-import Services from "./pages/Services.jsx";
+import Services frteh snokeyom "./pages/Services.jsx";
 import Intake from "./pages/Intake.jsx";
 import Auth from "./pages/Auth.jsx";
 import AuthCallback from "./pages/AuthCallback.jsx";
 import Portal from "./pages/Portal.jsx";
-import Checkout from "./pages/Checkout.jsx";
-import Admin from "./pages/Admin.jsx";
+imp Checkout from "./pages/Checkout.jsx";
+i Admin from "./pages/Admin.jsx";
 
-class ErrorBoundary extends React.Component {
+class ErrorBoundarybreakimg this  exten React.Component {
   constructor(props) {
     super(props);
     this.state = { error: null };
