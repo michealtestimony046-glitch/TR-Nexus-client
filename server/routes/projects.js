@@ -16,6 +16,13 @@ import {
   getMessages,
   markMessageRead,
 } from "../store.js";
+import {
+  createWhopClient,
+  getWhopPlanId,
+  isWhopConfigured,
+  WHOP_COMPANY_ID,
+  getWhopEnvironment,
+} from "../whop.js";
 
 const router = Router();
 
@@ -49,6 +56,70 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error("[projects/get]", err);
     return res.status(500).json({ ok: false, error: "Failed to load projects." });
+  }
+});
+
+// ── GET /api/projects/:id — checkout-safe project status ---------------------
+router.get("/:id", async (req, res, next) => {
+  if (["all"].includes(req.params.id)) return next();
+  try {
+    const user = await getUser(req);
+    const admin = isAdmin(req);
+    if (!user && !admin) return unauthorized(res);
+    const project = await getProjectById(req.params.id);
+    if (!project) return res.status(404).json({ ok: false, error: "Project not found." });
+    if (!admin && project.email?.toLowerCase() !== user.email.toLowerCase()) {
+      return res.status(404).json({ ok: false, error: "Project not found." });
+    }
+    return res.json({
+      ok: true,
+      project: {
+        status: project.status,
+        payment: project.payment ? {
+          status: project.payment.status || null,
+          method: project.payment.method || null,
+        } : null,
+      },
+      whopAvailable: project.status === "in-analysis" && project.payment?.status !== "paid" && isWhopConfigured(project.service),
+      whopEnvironment: getWhopEnvironment(),
+    });
+  } catch (err) {
+    console.error("[projects/get-by-id]", err);
+    return res.status(500).json({ ok: false, error: "Failed to load project status." });
+  }
+});
+
+// ── POST /api/projects/:id/whop-checkout -------------------------------------
+router.post("/:id/whop-checkout", async (req, res) => {
+  try {
+    const user = await getUser(req);
+    if (!user) return unauthorized(res);
+    const project = await getProjectById(req.params.id);
+    if (!project || project.email?.toLowerCase() !== user.email.toLowerCase()) {
+      return res.status(404).json({ ok: false, error: "Project not found." });
+    }
+    if (project.status !== "in-analysis") {
+      return res.status(409).json({ ok: false, error: "Checkout is only available while the project is in analysis." });
+    }
+    if (project.payment?.status === "paid") {
+      return res.status(409).json({ ok: false, error: "This project is already paid." });
+    }
+    const planId = getWhopPlanId(project.service);
+    if (!WHOP_COMPANY_ID || !planId || !isWhopConfigured(project.service)) {
+      return res.status(503).json({ ok: false, error: "Whop checkout is not configured for this service." });
+    }
+    const checkout = await createWhopClient().checkoutConfigurations.create({
+      company_id: WHOP_COMPANY_ID,
+      plan_id: planId,
+      mode: "payment",
+      metadata: { project_id: project.id },
+    }, {
+      headers: { "Idempotency-Key": `tr-whop-project-${project.id}` },
+    });
+    return res.json({ ok: true, sessionId: checkout.id, environment: getWhopEnvironment() });
+  } catch (err) {
+    console.error("[projects/whop-checkout]", err);
+    return res.status(502).json({ ok: false, error: "Unable to start Whop checkout." });
   }
 });
 
@@ -225,6 +296,15 @@ router.post("/:id/payment-request", async (req, res) => {
     if (!amount || !currency || !paymentMethod) {
       return res.json({ ok: false, error: "Missing payment details." });
     }
+    if (existing.payment?.status === "paid") {
+      return res.status(409).json({ ok: false, error: "This project is already paid." });
+    }
+    if (paymentMethod === "whop" || req.body?.method === "whop" || req.body?.status === "paid" || req.body?.payment?.status === "paid" || req.body?.payment?.method === "whop") {
+      return res.status(400).json({ ok: false, error: "Whop payments must be completed through checkout." });
+    }
+    if (!["lead-bank", "gbp", "eur", "usdt", "usdc", "escrow"].includes(paymentMethod)) {
+      return res.status(400).json({ ok: false, error: "Unsupported payment method." });
+    }
     if (!receiptImage) {
       return res.json({ ok: false, error: "Receipt image is required." });
     }
@@ -256,6 +336,9 @@ router.post("/:id/payment-request", async (req, res) => {
 
     const project = await savePaymentRequest(req.params.id, payment);
     if (!project) return res.status(404).json({ ok: false, error: "Project not found." });
+    if (project.__payment_locked || project.payment?.status === "paid") {
+      return res.status(409).json({ ok: false, error: "This project is already paid." });
+    }
 
     return res.json({ ok: true, project });
   } catch (err) {

@@ -983,7 +983,7 @@ export default function Admin() {
                             </div>
                             <div style={{ fontSize: 10, color: "#38bdf8aa", display: "flex", gap: 10, flexWrap: "wrap" }}>
                               <span>{p.payment.amount} {p.payment.currency}</span>
-                              <span>{p.payment.method}</span>
+                              <span>{p.payment.method === "whop" ? "Whop" : p.payment.method}</span>
                               <span>{timeAgo(p.payment.requested_at)}</span>
                             </div>
                           </div>
@@ -998,6 +998,8 @@ export default function Admin() {
                         </div>
                         {expandedPayment === p.id && (
                           <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #38bdf822" }}>
+                            {p.payment.whop_payment_id && <div style={{ fontSize: 11, color: "#38bdf8", marginBottom: 8 }}>Whop payment ID: {p.payment.whop_payment_id}</div>}
+                            {p.payment.history?.length > 0 && <div style={{ fontSize: 10, color: "#8899aa", marginBottom: 10 }}>Payment history: {p.payment.history.map((attempt, index) => `${index + 1}. ${attempt.method === "whop" ? "Whop" : attempt.method || "unknown"} — ${attempt.status || "—"}`).join(" · ")}</div>}
                             {p.payment.receiptImage && (
                               <div style={{ marginBottom: 12 }}>
                                 <div style={{ fontSize: 10, color: "#38bdf8aa", fontWeight: 700, marginBottom: 6 }}>RECEIPT</div>
@@ -1007,7 +1009,7 @@ export default function Admin() {
                                 }}/>
                               </div>
                             )}
-                            <div style={{ display: "flex", gap: 8 }}>
+                            {p.payment.method !== "whop" && <div style={{ display: "flex", gap: 8 }}>
                               <button onClick={() => confirmPayment(p.id)} disabled={updating === p.id}
                                 style={{
                                   flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 12, fontWeight: 700,
@@ -1024,7 +1026,7 @@ export default function Admin() {
                                 }}>
                                 ❌ Reject
                               </button>
-                            </div>
+                            </div>}
                           </div>
                         )}
                       </div>
@@ -1039,11 +1041,16 @@ export default function Admin() {
                       }}>
                         <span>✅</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: "#4ade80" }}>
-                          Payment Confirmed
+                          {p.payment.method === "whop" ? "Whop Payment Confirmed" : "Payment Confirmed"}
                         </span>
                         <span style={{ fontSize: 10, color: "#4ade8055" }}>
-                          {p.payment.amount} {p.payment.currency} · {timeAgo(p.payment.confirmed_at || p.payment.requested_at)}
+                          {p.payment.amount} {p.payment.currency} · {p.payment.method === "whop" ? `Whop ID: ${p.payment.whop_payment_id || "—"}` : timeAgo(p.payment.confirmed_at || p.payment.requested_at)}
                         </span>
+                        {p.payment.history?.length > 0 && (
+                          <span style={{ fontSize: 10, color: "#666" }}>
+                            · History: {p.payment.history.map((attempt, index) => `${index + 1}. ${attempt.method || "unknown"} (${attempt.status || "—"})`).join(" · ")}
+                          </span>
+                        )}
                       </div>
                     )}
 
