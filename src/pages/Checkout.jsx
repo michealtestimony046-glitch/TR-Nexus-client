@@ -215,6 +215,7 @@ export default function Checkout() {
   const [project, setProject] = useState(null);
   const [whopAvailable, setWhopAvailable] = useState(false);
   const [whopSessionId, setWhopSessionId] = useState(null);
+  const [whopEnvironment, setWhopEnvironment] = useState("production");
   const [whopCompleted, setWhopCompleted] = useState(false);
   const [pollStartedAt, setPollStartedAt] = useState(null);
   const [paymentTimedOut, setPaymentTimedOut] = useState(false);
@@ -248,6 +249,7 @@ export default function Checkout() {
         });
         const statusData = await statusRes.json();
         setWhopAvailable(Boolean(statusData.ok && statusData.whopAvailable));
+        setWhopEnvironment(statusData.whopEnvironment === "sandbox" ? "sandbox" : "production");
       }
     } catch (err) {
       console.error("Failed to fetch project info:", err);
@@ -299,6 +301,7 @@ export default function Checkout() {
       const data = await res.json();
       if (!data.ok) throw new Error(data.error || "Unable to start Whop checkout");
       setWhopSessionId(data.sessionId);
+      setWhopEnvironment(data.environment === "sandbox" ? "sandbox" : whopEnvironment);
       setPaymentMethod("whop");
       setStep("payment");
     } catch (err) {
@@ -556,6 +559,7 @@ export default function Checkout() {
               {whopSessionId && (
                 <WhopCheckoutEmbed
                   sessionId={whopSessionId}
+                  environment={whopEnvironment}
                   theme="dark"
                   skipRedirect
                   onComplete={() => {
