@@ -314,13 +314,6 @@ export async function getProjectById(id) {
 // ── Payments ─────────────────────────────────────────────────────────────────
 export async function savePaymentRequest(id, payment) {
   try {
-    const existing = await getProjectById(id);
-    if (!existing) return null;
-    if (existing.payment?.status === "paid") return { ...existing, __payment_locked: true };
-    const history = [
-      ...(existing.payment?.history || []),
-      ...(existing.payment ? [existing.payment] : []),
-    ];
     const rows = await db()`
       UPDATE projects
       SET payment = ${json({
@@ -328,13 +321,24 @@ export async function savePaymentRequest(id, payment) {
         status: "pending",
         method: payment.method === "whop" ? "manual" : payment.method,
         requested_at: payment.requested_at || new Date().toISOString(),
-        history,
-      })}::jsonb,
+      })}::jsonb ||
+      jsonb_build_object(
+        'history',
+        COALESCE(payment->'history', '[]'::jsonb) ||
+        CASE
+          WHEN payment IS NOT NULL AND payment->>'status' IS NOT NULL
+            THEN jsonb_build_array(payment - 'history')
+          ELSE '[]'::jsonb
+        END
+      ),
       updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
+        AND COALESCE(payment->>'status', '') <> 'paid'
       RETURNING *
     `;
-    return rows[0] || null;
+    if (rows[0]) return rows[0];
+    const latest = await getProjectById(id);
+    return latest?.payment?.status === "paid" ? { ...latest, __payment_locked: true } : null;
   } catch (err) {
     console.error("[store] savePaymentRequest:", err);
     return null;
@@ -394,56 +398,101 @@ export async function rejectPayment(id) {
 }
 
 
+let whopProcessedTablePromise;
+async function ensureWhopProcessedTable() {
+  if (!whopProcessedTablePromise) {
+    whopProcessedTablePromise = (async () => {
+      await db()`
+        CREATE TABLE IF NOT EXISTS whop_processed_events (
+          event_id TEXT PRIMARY KEY,
+          payment_id TEXT,
+          event_type TEXT NOT NULL,
+          received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          processed_at TIMESTAMPTZ
+        )
+      `;
+      await db()`
+        CREATE UNIQUE INDEX IF NOT EXISTS whop_processed_success_payment_unique
+        ON whop_processed_events (payment_id)
+        WHERE event_type = 'payment.succeeded' AND payment_id IS NOT NULL
+      `;
+    })().catch((err) => {
+      whopProcessedTablePromise = null;
+      throw err;
+    });
+  }
+  return whopProcessedTablePromise;
+}
+
+export async function claimWhopEvent(eventId, paymentId, eventType) {
+  if (!eventId) return false;
+  await ensureWhopProcessedTable();
+  const uniquePaymentId = eventType === "payment.succeeded" ? paymentId : null;
+  const rows = await db()`
+    INSERT INTO whop_processed_events (event_id, payment_id, event_type)
+    VALUES (${eventId}, ${uniquePaymentId || null}, ${eventType || "unknown"})
+    ON CONFLICT DO NOTHING
+    RETURNING event_id
+  `;
+  return rows.length > 0;
+}
+
+export async function completeWhopEvent(eventId) {
+  await ensureWhopProcessedTable();
+  await db()`
+    UPDATE whop_processed_events SET processed_at = CURRENT_TIMESTAMP
+    WHERE event_id = ${eventId}
+  `;
+}
+
+export async function releaseWhopEvent(eventId) {
+  await ensureWhopProcessedTable();
+  await db()`
+    DELETE FROM whop_processed_events
+    WHERE event_id = ${eventId} AND processed_at IS NULL
+  `;
+}
+
 export async function hasProcessedWhopEvent(eventId) {
   if (!eventId) return false;
-  try {
-    const rows = await db()`
-      SELECT id FROM projects
-      WHERE payment->'whop_processed_event_ids' ? ${eventId}
-         OR payment->'history' @> ${json([{ whop_event_id: eventId }])}::jsonb
-      LIMIT 1
-    `;
-    return Boolean(rows[0]);
-  } catch (err) {
-    console.error("[store] hasProcessedWhopEvent:", err);
-    return false;
-  }
+  await ensureWhopProcessedTable();
+  const rows = await db()`
+    SELECT event_id FROM whop_processed_events WHERE event_id = ${eventId} LIMIT 1
+  `;
+  return Boolean(rows[0]);
 }
 
 export async function recordWhopPayment(id, payment, eventId) {
-  const project = await getProjectById(id);
-  if (!project) return { kind: "missing" };
-  const current = project.payment || null;
-  if (current?.status === "paid") {
-    if (current.whop_payment_id === payment.whop_payment_id) return { kind: "duplicate", project };
-    return { kind: "already-paid", project };
-  }
-  const history = [
-    ...(current?.history || []),
-    ...(current ? [current] : []),
-  ];
-  const processed = Array.from(new Set([
-    ...(current?.whop_processed_event_ids || []),
-    eventId,
-  ].filter(Boolean)));
-  const nextPayment = {
-    ...payment,
-    status: "paid",
-    method: "whop",
-    paid_at: payment.paid_at || new Date().toISOString(),
-    whop_processed_event_ids: processed,
-    history,
-  };
   try {
     const rows = await db()`
       UPDATE projects
-      SET payment = ${json(nextPayment)}::jsonb,
-          updated_at = CURRENT_TIMESTAMP
+      SET payment = ${json(payment)}::jsonb ||
+        jsonb_build_object(
+          'status', 'paid',
+          'method', 'whop',
+          'paid_at', COALESCE(${payment.paid_at || null}, CURRENT_TIMESTAMP::text),
+          'history',
+            COALESCE(payment->'history', '[]'::jsonb) ||
+            CASE
+              WHEN payment IS NOT NULL AND payment->>'status' IS NOT NULL
+                THEN jsonb_build_array(payment - 'history')
+              ELSE '[]'::jsonb
+            END
+        ) ||
+        jsonb_build_object('whop_event_id', ${eventId}),
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ${id}
         AND COALESCE(payment->>'status', '') <> 'paid'
       RETURNING *
     `;
-    return rows[0] ? { kind: "updated", project: rows[0] } : { kind: "already-paid", project: await getProjectById(id) };
+    if (rows[0]) return { kind: "updated", project: rows[0] };
+    const latest = await getProjectById(id);
+    if (!latest) return { kind: "missing" };
+    if (latest.payment?.status === "paid" && latest.payment?.whop_payment_id === payment.whop_payment_id) {
+      return { kind: "duplicate", project: latest };
+    }
+    if (latest.payment?.status === "paid") return { kind: "already-paid", project: latest };
+    return { kind: "missing", project: latest };
   } catch (err) {
     console.error("[store] recordWhopPayment:", err);
     throw err;

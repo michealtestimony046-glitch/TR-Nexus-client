@@ -26,18 +26,19 @@ export function getWhopPlanId(service) {
     "Custom QA Solutions": "custom-qa",
     "Optional Add-Ons": "add-ons",
   };
+  if (service === "Custom QA Solutions" || service === "Optional Add-Ons" || service === "custom-qa" || service === "add-ons") return "";
   return WHOP_PLAN_IDS[service] || WHOP_PLAN_IDS[aliases[service]] || "";
 }
 
 export function isWhopConfigured(service) {
-  return Boolean(WHOP_API_KEY && WHOP_COMPANY_ID && getWhopPlanId(service));
+  return Boolean(WHOP_API_KEY && WHOP_COMPANY_ID && WHOP_WEBHOOK_SECRET && getWhopPlanId(service));
 }
 
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
   return new WhopClient({
     token: WHOP_API_KEY,
-    ...(process.env.WHOP_API_BASE_URL ? { baseUrl: process.env.WHOP_API_BASE_URL } : {}),
+    ...(process.env.WHOP_API_BASE_URL ? { baseURL: process.env.WHOP_API_BASE_URL } : {}),
   });
 }
 
