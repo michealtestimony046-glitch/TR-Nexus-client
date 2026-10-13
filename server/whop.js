@@ -1,4 +1,4 @@
-import Whop from "@whop/sdk";
+import { WhopClient } from "@whop/sdk";
 import { unwrapWebhook } from "@whop/sdk/helpers";
 import { SERVICES } from "../src/services.js";
 
@@ -37,7 +37,7 @@ export function isWhopConfigured(service) {
 
 export function createWhopClient() {
   if (!WHOP_API_KEY) throw new Error("WHOP_API_KEY is not configured.");
-  return new Whop({
+  return new WhopClient({
     apiKey: WHOP_API_KEY,
     ...(process.env.WHOP_API_BASE_URL ? { baseURL: process.env.WHOP_API_BASE_URL } : {}),
   });
@@ -50,11 +50,14 @@ export function verifyWhopWebhook(rawBody, headers) {
   });
 }
 
-export function moneyValue(money) {
-  if (!money) return { amount: null, currency: null };
+export function moneyValue(money, currency = null) {
+  if (money == null) return { amount: null, currency: String(currency || "").toUpperCase() || null };
+  if (typeof money !== "object") {
+    return { amount: money, currency: String(currency || "").toUpperCase() || null };
+  }
   return {
     amount: money.amount ?? money.value ?? null,
-    currency: String(money.currency || "").toUpperCase() || null,
+    currency: String(money.currency || currency || "").toUpperCase() || null,
   };
 }
 

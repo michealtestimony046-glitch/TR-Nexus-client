@@ -30,7 +30,7 @@ function makeDeps() {
     async completeWhopEvent() {},
     async releaseWhopEvent(eventId) { eventIds.delete(eventId); },
     async getProjectById(id) { return id === project.id ? project : null; },
-    async getWhopPlanId(service) { return service === "Launch Validation" ? PLAN : ""; },
+    getWhopPlanId(service) { return service === "Launch Validation" ? PLAN : ""; },
     async recordWhopPayment(id, payment) {
       if (id !== project.id) return { kind: "missing" };
       if (project.payment?.status === "paid") {
@@ -107,6 +107,8 @@ test("valid signed payment marks project paid without changing project status", 
   assert.equal(deps.project.payment.status, "paid");
   assert.equal(deps.project.payment.method, "whop");
   assert.equal(deps.project.payment.whop_payment_id, "pay_test_1");
+  assert.equal(deps.project.payment.amount, 49);
+  assert.equal(deps.project.payment.currency, "USD");
   assert.equal(deps.project.status, "in-analysis");
 });
 
@@ -124,10 +126,11 @@ test("bad signature is rejected without changing payment", async () => {
   assert.equal(deps.project.payment, null);
 });
 
-test("duplicate delivery is ignored and does not alert twice", async () => {
+test("duplicate delivery and a second event ID for the same payment do not write or alert twice", async () => {
   const deps = makeDeps();
   assert.equal((await processWhopEvent(makeEvent(), deps)).kind, "updated");
   assert.equal((await processWhopEvent(makeEvent(), deps)).kind, "duplicate");
+  assert.equal((await processWhopEvent({ ...makeEvent(), id: "evt_test_2" }, deps)).kind, "duplicate");
   assert.equal(deps.alerts.filter(([title]) => title.includes("payment confirmed")).length, 1);
 });
 
