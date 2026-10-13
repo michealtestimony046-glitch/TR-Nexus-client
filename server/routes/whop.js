@@ -46,6 +46,7 @@ export async function processWhopEvent(event, deps = {}) {
   const release = deps.releaseWhopEvent || releaseWhopEvent;
   const findProject = deps.getProjectById || getProjectById;
   const savePayment = deps.recordWhopPayment || recordWhopPayment;
+  const planForService = deps.getWhopPlanId || getWhopPlanId;
   const alert = deps.sendDiscordAlert || sendDiscordAlert;
 
   if (event?.api_version !== "v1") {
@@ -102,7 +103,7 @@ export async function processWhopEvent(event, deps = {}) {
       await complete(eventId);
       return { kind: "rejected-project" };
     }
-    const expectedPlan = getWhopPlanId(project.service);
+    const expectedPlan = planForService(project.service);
     const receivedPlan = planIdFromPayment(payment);
     if (!expectedPlan || receivedPlan !== expectedPlan) {
       await alert("⚠️ Whop payment plan mismatch", `Payment: ${paymentId}\nProject: ${projectId}\nExpected: ${expectedPlan || "not configured"}\nReceived: ${receivedPlan || "missing"}. It was not marked paid.`, 0xff4444);

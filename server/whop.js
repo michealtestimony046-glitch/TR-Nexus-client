@@ -1,5 +1,6 @@
 import { WhopClient } from "@whop/sdk";
 import { unwrapWebhook } from "@whop/sdk/helpers";
+import { SERVICES } from "../src/services.js";
 
 export const WHOP_COMPANY_ID = process.env.WHOP_COMPANY_ID || "";
 export const WHOP_WEBHOOK_SECRET = process.env.WHOP_WEBHOOK_SECRET || "";
@@ -58,6 +59,9 @@ export function moneyValue(money) {
 }
 
 export function advertisedPrice(project) {
-  const match = String(project?.price || "").replace(/,/g, "").match(/\d+(?:\.\d+)?/);
+  const service = SERVICES.flatMap((category) => category.items || []).find(
+    (item) => item.id === project?.service || item.name === project?.service
+  );
+  const match = String(service?.price || "").replace(/,/g, "").match(/\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
